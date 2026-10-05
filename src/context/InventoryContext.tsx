@@ -19,6 +19,19 @@ import {
   getSyncState,
   SyncState
 } from '../utils/googleWorkspace';
+import {
+  subscribeToCloudSync,
+  seedCloudIfEmpty,
+  cloudSaveStockItem,
+  cloudDeleteStockItem,
+  cloudSaveBatch,
+  cloudDeleteBatch,
+  cloudSaveVitranEntry,
+  cloudSaveTclLog,
+  cloudDeleteTclLog,
+  cloudSaveProfile,
+  cloudSyncAllData
+} from '../services/firebaseSync';
 
 export interface StockInPayload {
   itemId: string;
@@ -53,6 +66,11 @@ interface InventoryContextType {
   profile: RegisterProfile;
   theme: 'dark' | 'light';
   syncState: SyncState;
+  // Cloud & Offline Status (Web ⇄ Mobile APK live sync)
+  isOnline: boolean;
+  isCloudSyncing: boolean;
+  lastCloudSync: string | null;
+  syncToCloudNow: () => Promise<boolean>;
   // Theme
   toggleTheme: () => void;
   setTheme: (theme: 'dark' | 'light') => void;
@@ -229,6 +247,83 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
   };
 
+  // Online / Offline & Cloud Synchronization State
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+  const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
+  const [lastCloudSync, setLastCloudSync] = useState<string | null>(null);
+
+  // Monitor network online/offline transitions
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      // Auto-sync when reconnecting to internet
+      seedCloudIfEmpty(stockItems, batches, vitranEntries, tclLogs, profile);
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [stockItems, batches, vitranEntries, tclLogs, profile]);
+
+  // Real-Time Cross-Device Synchronization (Web App ⇄ Android Mobile APK)
+  useEffect(() => {
+    // 1. If cloud is fresh, seed current items
+    seedCloudIfEmpty(stockItems, batches, vitranEntries, tclLogs, profile);
+
+    // 2. Real-time Firestore snapshot listener
+    const unsubscribe = subscribeToCloudSync((incoming) => {
+      setIsCloudSyncing(true);
+      if (incoming.stockItems && incoming.stockItems.length > 0) {
+        setStockItems(incoming.stockItems);
+      }
+      if (incoming.batches) {
+        setBatches(incoming.batches);
+      }
+      if (incoming.vitranEntries) {
+        setVitranEntries(incoming.vitranEntries);
+      }
+      if (incoming.tclLogs) {
+        setTclLogs(incoming.tclLogs);
+      }
+      if (incoming.profile) {
+        setProfile(incoming.profile);
+      }
+      setLastCloudSync(
+        new Date().toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' })
+      );
+      setTimeout(() => setIsCloudSyncing(false), 400);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const syncToCloudNow = async (): Promise<boolean> => {
+    setIsCloudSyncing(true);
+    const success = await cloudSyncAllData(
+      stockItems,
+      batches,
+      vitranEntries,
+      tclLogs,
+      profile
+    );
+    if (success) {
+      setLastCloudSync(
+        new Date().toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' })
+      );
+    }
+    setIsCloudSyncing(false);
+    return success;
+  };
+
   // BACKGROUND SYNC: Whenever inventory transactions change, auto-push to Google Sheets!
   useEffect(() => {
     if (isFirstRender.current) {
@@ -267,6 +362,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     );
 
     let batchId = existingBatch?.id;
+    let createdBatch: BatchItem | null = null;
 
     if (existingBatch) {
       setBatches((prev) =>
@@ -287,7 +383,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       const defaultExp = new Date();
       defaultExp.setFullYear(defaultExp.getFullYear() + 2);
 
-      const newBatch: BatchItem = {
+      createdBatch = {
         id: batchId,
         itemId: item.id,
         batchNumber: cleanBatchNo,
@@ -298,7 +394,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
         receivedFrom: (payload.receivedFrom && payload.receivedFrom.trim()) || 'સરકારી દવા ભંડાર / THO',
         createdAt: now,
       };
-      setBatches((prev) => [newBatch, ...prev]);
+      setBatches((prev) => [createdBatch!, ...prev]);
     }
 
     const bachat = khultoJatho + qty;
@@ -327,6 +423,21 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
 
     setVitranEntries((prev) => [newEntry, ...prev]);
+
+    // Live Cloud Sync (Web ⇄ Mobile APK)
+    cloudSaveVitranEntry(newEntry);
+    if (existingBatch) {
+      cloudSaveBatch({
+        ...existingBatch,
+        quantity: existingBatch.quantity + qty,
+        expiryDate: payload.expiryDate || existingBatch.expiryDate,
+        mfgDate: payload.mfgDate || existingBatch.mfgDate,
+        receivedFrom: payload.receivedFrom || existingBatch.receivedFrom,
+      });
+    } else if (createdBatch) {
+      cloudSaveBatch(createdBatch);
+    }
+
     return newEntry;
   };
 
@@ -399,6 +510,16 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
 
     setVitranEntries((prev) => [newEntry, ...prev]);
+
+    // Live Cloud Sync (Web ⇄ Mobile APK)
+    cloudSaveVitranEntry(newEntry);
+    if (batch) {
+      cloudSaveBatch({
+        ...batch,
+        quantity: Math.max(0, batch.quantity - qty),
+      });
+    }
+
     return newEntry;
   };
 
@@ -418,6 +539,9 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
 
     setTclLogs((prev) => [newLog, ...prev]);
+
+    // Live Cloud Sync (Web ⇄ Mobile APK)
+    cloudSaveTclLog(newLog);
 
     // Optionally record auto-vitran of TCL powder if user checked deductFromStock
     if (payload.deductFromStock !== false) {
@@ -449,6 +573,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const deleteTclLog = (id: string) => {
     setTclLogs((prev) => prev.filter((log) => log.id !== id));
+    cloudDeleteTclLog(id);
   };
 
   const addNewStockItem = (itemData: Partial<StockItem>): StockItem => {
@@ -465,38 +590,66 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       createdAt: new Date().toISOString(),
     };
     setStockItems((prev) => [...prev, newItem]);
+    cloudSaveStockItem(newItem);
     return newItem;
   };
 
   const updateStockItem = (itemId: string, updates: Partial<StockItem>) => {
     setStockItems((prev) =>
-      prev.map((i) => (i.id === itemId ? { ...i, ...updates } : i))
+      prev.map((i) => {
+        if (i.id === itemId) {
+          const updated = { ...i, ...updates };
+          cloudSaveStockItem(updated);
+          return updated;
+        }
+        return i;
+      })
     );
   };
 
   const deleteStockItem = (itemId: string) => {
     setStockItems((prev) => prev.filter((i) => i.id !== itemId));
     setBatches((prev) => prev.filter((b) => b.itemId !== itemId));
+    cloudDeleteStockItem(itemId);
   };
 
   const updateItemThreshold = (itemId: string, threshold: number) => {
     setStockItems((prev) =>
-      prev.map((i) => (i.id === itemId ? { ...i, minThreshold: Math.max(0, threshold) } : i))
+      prev.map((i) => {
+        if (i.id === itemId) {
+          const updated = { ...i, minThreshold: Math.max(0, threshold) };
+          cloudSaveStockItem(updated);
+          return updated;
+        }
+        return i;
+      })
     );
   };
 
   const updateBatchQuantity = (batchId: string, quantity: number) => {
     setBatches((prev) =>
-      prev.map((b) => (b.id === batchId ? { ...b, quantity: Math.max(0, quantity) } : b))
+      prev.map((b) => {
+        if (b.id === batchId) {
+          const updated = { ...b, quantity: Math.max(0, quantity) };
+          cloudSaveBatch(updated);
+          return updated;
+        }
+        return b;
+      })
     );
   };
 
   const deleteBatch = (batchId: string) => {
     setBatches((prev) => prev.filter((b) => b.id !== batchId));
+    cloudDeleteBatch(batchId);
   };
 
   const updateProfile = (newProfile: Partial<RegisterProfile>) => {
-    setProfile((prev) => ({ ...prev, ...newProfile }));
+    setProfile((prev) => {
+      const updated = { ...prev, ...newProfile };
+      cloudSaveProfile(updated);
+      return updated;
+    });
   };
 
   // Fresh reset: completely clears all batches, stock transactions and logs
@@ -516,6 +669,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     clearAllData();
     setStockItems(initialStockItems);
     setProfile(initialRegisterProfile);
+    cloudSyncAllData(initialStockItems, [], [], [], initialRegisterProfile);
   };
 
   return (
@@ -528,6 +682,10 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
         profile,
         theme,
         syncState,
+        isOnline,
+        isCloudSyncing,
+        lastCloudSync,
+        syncToCloudNow,
         toggleTheme,
         setTheme,
         addStockIn,

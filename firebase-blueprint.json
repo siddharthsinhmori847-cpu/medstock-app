@@ -1,0 +1,132 @@
+{
+  "entities": {
+    "StockItem": {
+      "title": "StockItem",
+      "description": "Medicine or supply item in the inventory register",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "key": { "type": "string" },
+        "nameGu": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "category": { "type": "string" },
+        "unitGu": { "type": "string" },
+        "unitEn": { "type": "string" },
+        "minThreshold": { "type": "number" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "nameGu", "unitGu"]
+    },
+    "BatchItem": {
+      "title": "BatchItem",
+      "description": "Stock batch with expiry and quantity",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "itemId": { "type": "string" },
+        "batchNumber": { "type": "string" },
+        "mfgDate": { "type": "string" },
+        "expiryDate": { "type": "string" },
+        "quantity": { "type": "number" },
+        "initialQuantity": { "type": "number" },
+        "receivedFrom": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "itemId", "batchNumber", "quantity"]
+    },
+    "VitranEntry": {
+      "title": "VitranEntry",
+      "description": "Transaction entry for inward receipt or outward distribution",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "date": { "type": "string" },
+        "action": { "type": "string", "enum": ["INWARD", "VITRAN", "ADJUSTMENT"] },
+        "itemId": { "type": "string" },
+        "itemNameGu": { "type": "string" },
+        "itemNameEn": { "type": "string" },
+        "unitGu": { "type": "string" },
+        "unitEn": { "type": "string" },
+        "batchId": { "type": "string" },
+        "batchNumber": { "type": "string" },
+        "mfgDate": { "type": "string" },
+        "expiryDate": { "type": "string" },
+        "khultoJatho": { "type": "number" },
+        "malelJatho": { "type": "number" },
+        "vaprashJatho": { "type": "number" },
+        "koneAapiyo": { "type": "string" },
+        "bachat": { "type": "number" },
+        "referenceNo": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "date", "action", "itemId"]
+    },
+    "TclLogEntry": {
+      "title": "TclLogEntry",
+      "description": "Chlorination calculation and log entry for drinking water well",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "date": { "type": "string" },
+        "wellOwnerName": { "type": "string" },
+        "location": { "type": "string" },
+        "shape": { "type": "string", "enum": ["CIRCULAR", "RECTANGULAR"] },
+        "wellDiameter": { "type": "number" },
+        "length": { "type": "number" },
+        "width": { "type": "number" },
+        "waterDepth": { "type": "number" },
+        "waterVolumeLiters": { "type": "number" },
+        "desiredPpm": { "type": "number" },
+        "tclUsedGrams": { "type": "number" },
+        "tclUsedKg": { "type": "number" },
+        "testedPpm": { "type": "number" },
+        "operatorName": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "date", "wellOwnerName", "waterDepth", "tclUsedKg"]
+    },
+    "RegisterProfile": {
+      "title": "RegisterProfile",
+      "description": "Subcenter register profile and owner metadata",
+      "type": "object",
+      "properties": {
+        "ownerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "centerNameGu": { "type": "string" },
+        "centerNameEn": { "type": "string" },
+        "inchargeName": { "type": "string" },
+        "villageTaluka": { "type": "string" },
+        "district": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["ownerName", "centerNameGu"]
+    }
+  },
+  "firestore": {
+    "/stock_items/{itemId}": {
+      "schema": "StockItem",
+      "description": "Inventory stock items list"
+    },
+    "/batches/{batchId}": {
+      "schema": "BatchItem",
+      "description": "Active medicine batches"
+    },
+    "/vitran_entries/{entryId}": {
+      "schema": "VitranEntry",
+      "description": "Daily distribution and inward log"
+    },
+    "/tcl_logs/{logId}": {
+      "schema": "TclLogEntry",
+      "description": "Drinking water well chlorination register"
+    },
+    "/app_settings/{settingId}": {
+      "schema": "RegisterProfile",
+      "description": "Health subcenter profile settings"
+    }
+  }
+}

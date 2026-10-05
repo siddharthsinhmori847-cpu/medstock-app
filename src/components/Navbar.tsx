@@ -35,7 +35,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
 }) => {
-  const { profile, theme, toggleTheme, syncState, stockItems } = useInventory();
+  const {
+    profile,
+    theme,
+    toggleTheme,
+    syncState,
+    stockItems,
+    isOnline,
+    isCloudSyncing,
+    lastCloudSync,
+    syncToCloudNow
+  } = useInventory();
   const isDark = theme === 'dark';
 
   const essentialKeys = ['clorine-powder', 'clorine-tablet', 'iron-tablet-small', 'iron-tablet-big'];
@@ -84,6 +94,53 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Top Right Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Web ⇄ Mobile Live Cloud Sync Badge */}
+          {isOnline ? (
+            <button
+              type="button"
+              onClick={() => syncToCloudNow()}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                isCloudSyncing
+                  ? isDark
+                    ? 'bg-teal-950/70 border-teal-500/50 text-teal-300 animate-pulse'
+                    : 'bg-teal-50 border-teal-300 text-teal-800 animate-pulse'
+                  : isDark
+                  ? 'bg-emerald-950/60 hover:bg-emerald-900/60 border-emerald-500/40 text-emerald-300'
+                  : 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300 text-emerald-800'
+              }`}
+              title={
+                isCloudSyncing
+                  ? 'વેબ અને મોબાઇલ વચ્ચે લાઇવ સિંક થઈ રહ્યું છે...'
+                  : `ઓનલાઇન ક્લાઉડ સિંક (Web ⇄ Mobile લાઇવ) - છેલ્લે સિંક: ${lastCloudSync || 'હમણાં'}`
+              }
+            >
+              {isCloudSyncing ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-teal-400" />
+              ) : (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+              )}
+              <span className="hidden sm:inline">
+                {isCloudSyncing ? 'સિંક થાય છે...' : 'Web ⇄ Mobile લાઇવ'}
+              </span>
+              <span className="sm:hidden">
+                {isCloudSyncing ? 'સિંક...' : 'લાઇવ'}
+              </span>
+            </button>
+          ) : (
+            <div
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border ${
+                isDark
+                  ? 'bg-amber-950/60 border-amber-500/40 text-amber-300'
+                  : 'bg-amber-50 border-amber-300 text-amber-800'
+              }`}
+              title="ઓફલાઇન મોડ: તમામ ડેટા તમારા ફોનમાં સુરક્ષિત સેવ છે. ઇન્ટરનેટ ચાલુ થતાં જ ક્લાઉડમાં આપોઆપ સિંક થશે."
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+              <span className="hidden sm:inline">ઓફલાઇન (સ્થાનિક સેવ)</span>
+              <span className="sm:hidden">ઓફલાઇન</span>
+            </div>
+          )}
+
           {/* Live Background Sync Status Badge */}
           {syncState.status === 'syncing' ? (
             <div

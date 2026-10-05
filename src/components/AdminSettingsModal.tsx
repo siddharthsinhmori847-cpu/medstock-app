@@ -18,7 +18,11 @@ import {
   ExternalLink,
   LogOut,
   Download,
-  Info
+  Info,
+  Smartphone,
+  Globe,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { useInventory } from '../context/InventoryContext';
@@ -60,9 +64,13 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
     deleteBatch,
     clearAllData,
     getItemTotalStock,
+    isOnline,
+    isCloudSyncing,
+    lastCloudSync,
+    syncToCloudNow
   } = useInventory();
 
-  const [activeTab, setActiveTab] = useState<'STOCK' | 'THEME' | 'DATA' | 'SHEETS'>('STOCK');
+  const [activeTab, setActiveTab] = useState<'STOCK' | 'THEME' | 'CLOUD' | 'SHEETS' | 'DATA'>('STOCK');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editNameGu, setEditNameGu] = useState('');
   const [editUnitGu, setEditUnitGu] = useState('');
@@ -267,6 +275,18 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
           >
             {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             <span>થીમ</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('CLOUD')}
+            className={`flex-1 min-w-[130px] py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'CLOUD'
+                ? 'border-cyan-500 text-cyan-500 font-black'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <Cloud className="w-4 h-4" />
+            <span>ક્લાઉડ સિંક (Web ⇄ App)</span>
           </button>
 
           <button
@@ -594,6 +614,159 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
                     <span>નવું APK ડાઉનલોડ કરો</span>
                   </a>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: REAL-TIME CLOUD SYNC (WEB ⇄ MOBILE APK) */}
+          {activeTab === 'CLOUD' && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-bold text-sm flex items-center gap-2">
+                  <Cloud className="w-4 h-4 text-cyan-500" />
+                  <span>Web ⇄ Mobile લાઇવ ક્લાઉડ સિંક (ઓનલાઇન & ઓફલાઇન)</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  વેબ એપ્લિકેશન અને મોબાઇલ APK બંને આપોઆપ જોડાયેલા છે. એક જગ્યાએ ડેટા નાખશો એટલે બીજી જગ્યાએ તરત જ આવી જશે.
+                </p>
+              </div>
+
+              {/* Live Status Card */}
+              <div
+                className={`p-4 rounded-2xl border ${
+                  isDark
+                    ? isOnline
+                      ? 'bg-cyan-950/20 border-cyan-500/30'
+                      : 'bg-amber-950/20 border-amber-500/30'
+                    : isOnline
+                    ? 'bg-cyan-50/70 border-cyan-200'
+                    : 'bg-amber-50/70 border-amber-200'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                        isOnline
+                          ? 'bg-cyan-500/20 text-cyan-400'
+                          : 'bg-amber-500/20 text-amber-500'
+                      }`}
+                    >
+                      {isOnline ? (
+                        <Wifi className="w-5 h-5 text-cyan-500" />
+                      ) : (
+                        <WifiOff className="w-5 h-5 text-amber-500" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm">
+                          {isOnline ? 'લાઇવ ક્લાઉડ કનેક્શન સક્રિય (Online)' : 'ઓફલાઇન મોડ (Offline)'}
+                        </h4>
+                        <span
+                          className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                            isOnline
+                              ? 'bg-emerald-500/20 text-emerald-500 dark:text-emerald-400'
+                              : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                          }`}
+                        >
+                          {isOnline ? 'લાઇવ જોડાયેલું' : 'સ્થાનિક સેવ'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {isOnline
+                          ? `છેલ્લે ક્લાઉડ સિંક થયું: ${lastCloudSync || 'હમણાં જ'}`
+                          : 'ઇન્ટરનેટ બંધ છે. તમારો તમામ ડેટા તમારા ફોનમાં સુરક્ષિત સેવ છે. નેટ ચાલુ થતાં જ સિંક થશે.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => syncToCloudNow()}
+                    disabled={isCloudSyncing}
+                    className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isCloudSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isCloudSyncing ? 'સિંક થઈ રહ્યું છે...' : 'હમણાં સિંક કરો (Force Sync)'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3 Step Features */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div
+                  className={`p-3.5 rounded-xl border ${
+                    isDark ? 'bg-slate-800/40 border-slate-700/80' : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center mb-2">
+                    <Globe className="w-4 h-4 text-teal-500" />
+                  </div>
+                  <h4 className="font-bold text-xs text-slate-900 dark:text-white">
+                    ૧. વેબ એપમાં ડેટા નાખો
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    કમ્પ્યુટર અથવા બ્રાઉઝરમાં સ્ટોક આવક, વિતરણ કે કુવો ક્લોરિનેશન એન્ટ્રી કરો.
+                  </p>
+                </div>
+
+                <div
+                  className={`p-3.5 rounded-xl border ${
+                    isDark ? 'bg-slate-800/40 border-slate-700/80' : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center mb-2">
+                    <Smartphone className="w-4 h-4 text-cyan-500" />
+                  </div>
+                  <h4 className="font-bold text-xs text-slate-900 dark:text-white">
+                    ૨. મોબાઇલમાં તરત આવશે
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    તમારા Android મોબાઇલ APK માં કોઈપણ રીલોડ વગર ડેટા આપોઆપ લાઈવ દેખાશે!
+                  </p>
+                </div>
+
+                <div
+                  className={`p-3.5 rounded-xl border ${
+                    isDark ? 'bg-slate-800/40 border-slate-700/80' : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <h4 className="font-bold text-xs text-slate-900 dark:text-white">
+                    ૩. ઓફલાઇન પણ કામ કરશે
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    ઇન્ટરનેટ ન હોય તો પણ કામ અટકશે નહીં. નેટ આવતાં જ આપોઆપ ક્લાઉડમાં અપડેટ થઈ જશે.
+                  </p>
+                </div>
+              </div>
+
+              {/* Web App Link Card */}
+              <div
+                className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-100 border-slate-200'
+                }`}
+              >
+                <div>
+                  <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200">
+                    કમ્પ્યુટર / બ્રાઉઝર માટે સત્તાવાર વેબ લિંક:
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 select-all break-all">
+                    https://ais-pre-spisgiamnfph6xunhnkmxs-107416021501.asia-southeast1.run.app
+                  </p>
+                </div>
+                <a
+                  href="https://ais-pre-spisgiamnfph6xunhnkmxs-107416021501.asia-southeast1.run.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 shrink-0"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>વેબ લિંક ખોલો</span>
+                </a>
               </div>
             </div>
           )}
