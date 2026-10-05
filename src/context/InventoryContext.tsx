@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import {
   StockItem,
   BatchItem,
@@ -13,6 +13,12 @@ import {
   initialRegisterProfile,
   initialTclLogs
 } from '../data/mockData';
+import {
+  queueBackgroundSync,
+  subscribeSyncState,
+  getSyncState,
+  SyncState
+} from '../utils/googleWorkspace';
 
 export interface StockInPayload {
   itemId: string;
@@ -46,6 +52,7 @@ interface InventoryContextType {
   tclLogs: TclLogEntry[];
   profile: RegisterProfile;
   theme: 'dark' | 'light';
+  syncState: SyncState;
   // Theme
   toggleTheme: () => void;
   setTheme: (theme: 'dark' | 'light') => void;
@@ -141,6 +148,17 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   });
 
+  const [syncState, setSyncState] = useState<SyncState>(getSyncState);
+  const isFirstRender = useRef(true);
+
+  // Subscribe to live background sync state
+  useEffect(() => {
+    const unsubscribe = subscribeSyncState((newState) => {
+      setSyncState(newState);
+    });
+    return unsubscribe;
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.THEME, theme);
     if (theme === 'dark') {
@@ -210,6 +228,23 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       isLowStock,
     };
   };
+
+  // BACKGROUND SYNC: Whenever inventory transactions change, auto-push to Google Sheets!
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    queueBackgroundSync({
+      stockItems,
+      batches,
+      vitranEntries,
+      tclLogs,
+      profile,
+      getItemTotalStock,
+    });
+  }, [stockItems, batches, vitranEntries, tclLogs, profile]);
 
   // Add Stock IN (સ્ટોક આવક)
   const addStockIn = (payload: StockInPayload): VitranEntry => {
@@ -428,7 +463,6 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     localStorage.removeItem(STORAGE_KEYS.BATCHES);
     localStorage.removeItem(STORAGE_KEYS.ENTRIES);
     localStorage.removeItem(STORAGE_KEYS.TCL_LOGS);
-    // Also clean any previous version keys
     localStorage.removeItem('medstock_dark_batches_v3');
     localStorage.removeItem('medstock_dark_entries_v3');
     localStorage.removeItem('medstock_dark_tcl_logs_v3');
@@ -449,6 +483,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
         tclLogs,
         profile,
         theme,
+        syncState,
         toggleTheme,
         setTheme,
         addStockIn,

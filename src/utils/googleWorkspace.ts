@@ -30,7 +30,6 @@ export const initAuth = (
     if (user && cachedAccessToken) {
       if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
     } else if (user) {
-      // User is signed in to Firebase but we need accessToken from popup
       if (onAuthSuccess && cachedAccessToken) {
         onAuthSuccess(user, cachedAccessToken);
       }
@@ -51,6 +50,7 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     }
 
     cachedAccessToken = credential.accessToken;
+    notifySyncSubscribers();
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
     console.error('Sign in error:', error);
@@ -67,6 +67,15 @@ export const getAccessToken = async (): Promise<string | null> => {
 export const logoutGoogle = async () => {
   await signOut(auth);
   cachedAccessToken = null;
+  localStorage.removeItem('medstock_spreadsheet_id');
+  localStorage.removeItem('medstock_spreadsheet_url');
+  syncState = {
+    status: 'idle',
+    lastSyncedTime: null,
+    spreadsheetUrl: null,
+    error: null,
+  };
+  notifySyncSubscribers();
 };
 
 export interface SyncDataPayload {
@@ -86,6 +95,50 @@ export interface SyncResult {
   error?: string;
 }
 
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
+
+export interface SyncState {
+  status: SyncStatus;
+  lastSyncedTime: string | null;
+  spreadsheetUrl: string | null;
+  error: string | null;
+}
+
+let syncState: SyncState = {
+  status: 'idle',
+  lastSyncedTime: localStorage.getItem('medstock_last_sync_time'),
+  spreadsheetUrl: localStorage.getItem('medstock_spreadsheet_url'),
+  error: null,
+};
+
+type SyncSubscriber = (state: SyncState) => void;
+const syncSubscribers: Set<SyncSubscriber> = new Set();
+
+export const subscribeSyncState = (subscriber: SyncSubscriber) => {
+  syncSubscribers.add(subscriber);
+  subscriber({ ...syncState });
+  return () => {
+    syncSubscribers.delete(subscriber);
+  };
+};
+
+const notifySyncSubscribers = () => {
+  syncSubscribers.forEach((cb) => cb({ ...syncState }));
+};
+
+const updateSyncState = (partial: Partial<SyncState>) => {
+  syncState = { ...syncState, ...partial };
+  if (partial.lastSyncedTime) {
+    localStorage.setItem('medstock_last_sync_time', partial.lastSyncedTime);
+  }
+  if (partial.spreadsheetUrl) {
+    localStorage.setItem('medstock_spreadsheet_url', partial.spreadsheetUrl);
+  }
+  notifySyncSubscribers();
+};
+
+export const getSyncState = (): SyncState => ({ ...syncState });
+
 /**
  * Creates or updates Google Spreadsheet with 3 detailed sheets:
  * 1. Current Stock (દવા સ્ટોક)
@@ -99,28 +152,33 @@ export const syncToGoogleSheets = async (
   try {
     const spreadsheetTitle = `MedStock Health Register - ${payload.profile.centerNameGu || 'સબસેન્ટર'}`;
 
-    // 1. Search if spreadsheet already exists in user's Drive
-    const searchRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='${encodeURIComponent(
-        spreadsheetTitle
-      )}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+    // Check if spreadsheetId was already saved locally
+    let spreadsheetId = localStorage.getItem('medstock_spreadsheet_id') || '';
+    let spreadsheetUrl = localStorage.getItem('medstock_spreadsheet_url') || '';
 
-    let spreadsheetId = '';
-    let spreadsheetUrl = '';
+    // If not found locally, search if spreadsheet already exists in user's Drive
+    if (!spreadsheetId) {
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name='${encodeURIComponent(
+          spreadsheetTitle
+        )}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-    if (searchRes.ok) {
-      const searchData = await searchRes.json();
-      if (searchData.files && searchData.files.length > 0) {
-        spreadsheetId = searchData.files[0].id;
-        spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        if (searchData.files && searchData.files.length > 0) {
+          spreadsheetId = searchData.files[0].id;
+          spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+          localStorage.setItem('medstock_spreadsheet_id', spreadsheetId);
+          localStorage.setItem('medstock_spreadsheet_url', spreadsheetUrl);
+        }
       }
     }
 
-    // 2. If not found, create new spreadsheet with 3 sheets
+    // If still not found, create new spreadsheet with 3 sheets
     if (!spreadsheetId) {
       const createRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
         method: 'POST',
@@ -148,9 +206,11 @@ export const syncToGoogleSheets = async (
       const createData = await createRes.json();
       spreadsheetId = createData.spreadsheetId;
       spreadsheetUrl = createData.spreadsheetUrl;
+      localStorage.setItem('medstock_spreadsheet_id', spreadsheetId);
+      localStorage.setItem('medstock_spreadsheet_url', spreadsheetUrl);
     }
 
-    // 3. Prepare Data for Sheet 1: Current Stock
+    // 1. Prepare Data for Sheet 1: Current Stock
     const stockRows = [
       [
         'આઇટમ ID',
@@ -178,7 +238,7 @@ export const syncToGoogleSheets = async (
       }),
     ];
 
-    // 4. Prepare Data for Sheet 2: Vitran Register
+    // 2. Prepare Data for Sheet 2: Vitran Register
     const vitranRows = [
       [
         'તારીખ',
@@ -210,7 +270,7 @@ export const syncToGoogleSheets = async (
       ]),
     ];
 
-    // 5. Prepare Data for Sheet 3: TCL Chlorination Log
+    // 3. Prepare Data for Sheet 3: TCL Chlorination Log
     const tclRows = [
       [
         'તારીખ',
@@ -240,7 +300,7 @@ export const syncToGoogleSheets = async (
       ]),
     ];
 
-    // 6. Update all 3 sheets via values.batchUpdate
+    // 4. Update all 3 sheets via values.batchUpdate
     const updateRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
       {
@@ -253,15 +313,15 @@ export const syncToGoogleSheets = async (
           valueInputOption: 'USER_ENTERED',
           data: [
             {
-              range: 'Current Stock (હાલનો સ્ટોક)!A1',
+              range: 'Current Stock (હાલનો સ્ટોક)!A1:H100',
               values: stockRows,
             },
             {
-              range: 'Vitran Register (વિતરણ)!A1',
+              range: 'Vitran Register (વિતરણ)!A1:L500',
               values: vitranRows,
             },
             {
-              range: 'TCL Chlorination (કુવા)!A1',
+              range: 'TCL Chlorination (કુવા)!A1:K500',
               values: tclRows,
             },
           ],
@@ -274,18 +334,63 @@ export const syncToGoogleSheets = async (
       throw new Error(err.error?.message || 'શીટ્સમાં ડેટા સેવ કરવામાં ભૂલ આવી.');
     }
 
+    const timeStr = new Date().toLocaleTimeString('gu-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+
+    updateSyncState({
+      status: 'synced',
+      lastSyncedTime: timeStr,
+      spreadsheetUrl,
+      error: null,
+    });
+
+    // Reset status to idle after 4 seconds
+    setTimeout(() => {
+      if (syncState.status === 'synced') {
+        updateSyncState({ status: 'idle' });
+      }
+    }, 4000);
+
     return {
       success: true,
       spreadsheetId,
       spreadsheetUrl,
-      timestamp: new Date().toLocaleTimeString('gu-IN'),
+      timestamp: timeStr,
     };
   } catch (error: any) {
     console.error('Google Sheets sync error:', error);
+    const timeStr = new Date().toLocaleTimeString('gu-IN');
+    updateSyncState({
+      status: 'error',
+      error: error.message || 'અજ્ઞાત એરર આવી.',
+    });
     return {
       success: false,
       error: error.message || 'અજ્ઞાત એરર આવી.',
-      timestamp: new Date().toLocaleTimeString('gu-IN'),
+      timestamp: timeStr,
     };
   }
+};
+
+// Debounced background sync trigger
+let syncDebounceTimer: any = null;
+
+export const queueBackgroundSync = (payload: SyncDataPayload, delayMs = 1500) => {
+  if (syncDebounceTimer) {
+    clearTimeout(syncDebounceTimer);
+  }
+
+  syncDebounceTimer = setTimeout(async () => {
+    const token = cachedAccessToken;
+    if (!token) {
+      // User hasn't signed into Google yet, skip silently
+      return;
+    }
+
+    updateSyncState({ status: 'syncing', error: null });
+    await syncToGoogleSheets(token, payload);
+  }, delayMs);
 };
