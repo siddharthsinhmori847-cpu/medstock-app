@@ -24,6 +24,8 @@ import { StockItem } from '../types/inventory';
 import { exportStockDataToCsv } from '../utils/exportCsv';
 import {
   googleSignIn,
+  googleSignInWithRedirect,
+  signInWithGis,
   logoutGoogle,
   syncToGoogleSheets,
   initAuth,
@@ -101,16 +103,34 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
         handleManualSync(res.accessToken);
       }
     } catch (err: any) {
+      console.error('Google Sign in error:', err);
       const code = err.code || '';
       const msg = err.message || '';
-      if (code.includes('unauthorized-domain') || msg.includes('unauthorized-domain')) {
+      if (code.includes('network-request-failed') || msg.includes('network-request-failed')) {
         setSyncError(
-          'Google સિક્યુરિટી વેરિફિકેશન: બ્રાઉઝર/એપ ડોમેન માટે Google Workspace OAuth ઓથોરાઇઝેશન જરૂરી છે. કોઈપણ એરર વગર તમારો ડેટા તરત સાચવવા નીચે આપેલું "Excel / Google Sheet ફાઇલ ડાઉનલોડ" બટન વાપરો.'
+          'નેટવર્ક અથવા પોપ-અપ વિન્ડો કનેક્શન છૂટી ગયું છે. કૃપા કરીને તમારું ઇન્ટરનેટ કનેક્શન ચેક કરી "ફરી પ્રયત્ન કરો" અથવા નીચે આપેલા "મોબાઇલ રીડાયરેક્ટ સાઇન-ઇન" / "Excel ડાઉનલોડ" બટનનો ઉપયોગ કરો.'
+        );
+      } else if (code.includes('popup-closed-by-user') || msg.includes('popup-closed')) {
+        setSyncError('સાઇન-ઇન વિન્ડો બંધ થઈ ગઈ હતી. કૃપા કરીને ફરી Sign in પર ક્લિક કરો.');
+      } else if (code.includes('unauthorized-domain') || msg.includes('unauthorized-domain')) {
+        setSyncError(
+          'Google સુરક્ષા મંજૂરી અપડેટ થઈ રહી છે. કૃપા કરીને ફરી Sign in પર ક્લિક કરો અથવા સીધું ૧-ક્લિક Excel ડાઉનલોડ વાપરો.'
         );
       } else {
-        setSyncError(err.message || 'Google સાઇન-ઇન નિષ્ફળ રહ્યું.');
+        setSyncError(err.message || 'Google સાઇન-ઇન નિષ્ફળ રહ્યું. કૃપા કરીને ફરી પ્રયાસ કરો.');
       }
     } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleRedirectLogin = async () => {
+    setIsLoggingIn(true);
+    setSyncError(null);
+    try {
+      await googleSignInWithRedirect();
+    } catch (err: any) {
+      setSyncError(err.message || 'રીડાયરેક્ટ સાઇન-ઇન શરૂ થઈ શક્યું નથી.');
       setIsLoggingIn(false);
     }
   };
@@ -726,10 +746,51 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
                 )}
 
                 {syncError && (
-                  <p className="text-xs text-rose-400 mt-2 flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    <span>{syncError}</span>
-                  </p>
+                  <div className="mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 space-y-2">
+                    <p className="text-xs text-rose-400 flex items-start gap-1.5 leading-relaxed">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{syncError}</span>
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-rose-500/10">
+                      <button
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        disabled={isLoggingIn}
+                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] rounded-lg shadow flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isLoggingIn ? 'animate-spin' : ''}`} />
+                        <span>ફરી પ્રયત્ન કરો (Retry)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleRedirectLogin}
+                        disabled={isLoggingIn}
+                        className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-[11px] rounded-lg shadow flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-teal-400" />
+                        <span>મોબાઇલ રીડાયરેક્ટ સાઇન-ઇન</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          exportStockDataToCsv(
+                            stockItems,
+                            batches,
+                            vitranEntries,
+                            tclLogs,
+                            profile,
+                            getItemTotalStock
+                          )
+                        }
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] rounded-lg shadow flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 ml-auto"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>૧-ક્લિક Excel ડાઉનલોડ</span>
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

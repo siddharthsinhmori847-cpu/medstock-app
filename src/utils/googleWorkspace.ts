@@ -2,6 +2,8 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getAuth,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   User,
@@ -22,10 +24,85 @@ provider.addScope('https://www.googleapis.com/auth/spreadsheets');
 let cachedAccessToken: string | null = null;
 let isSigningIn = false;
 
+// Direct Google Identity Services (GIS) Token Client for popup/network resilience
+export const signInWithGis = async (): Promise<{ user: any; accessToken: string }> => {
+  return new Promise((resolve, reject) => {
+    const google = (window as any).google;
+    if (!google?.accounts?.oauth2) {
+      reject(new Error('Google Identity Services લોડ થયું નથી. કૃપા કરીને થોડીવાર પછી પ્રયાસ કરો.'));
+      return;
+    }
+
+    try {
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: firebaseConfig.oAuthClientId,
+        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file openid email profile',
+        callback: async (resp: any) => {
+          if (resp.error) {
+            reject(new Error(resp.error_description || resp.error));
+            return;
+          }
+          if (!resp.access_token) {
+            reject(new Error('Google Access Token મેળવી શકાયો નથી.'));
+            return;
+          }
+
+          cachedAccessToken = resp.access_token;
+
+          // Fetch user profile info with this token
+          let userProfile: any = {
+            displayName: 'Google વપરાશકર્તા',
+            email: '',
+            photoURL: '',
+          };
+          try {
+            const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: `Bearer ${resp.access_token}` },
+            });
+            if (userRes.ok) {
+              const data = await userRes.json();
+              userProfile = {
+                displayName: data.name || data.given_name || 'Google વપરાશકર્તા',
+                email: data.email || '',
+                photoURL: data.picture || '',
+              };
+            }
+          } catch (e) {
+            console.warn('Userinfo fetch warning:', e);
+          }
+
+          notifySyncSubscribers();
+          resolve({ user: userProfile, accessToken: resp.access_token });
+        },
+      });
+
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    } catch (err: any) {
+      reject(err);
+    }
+  });
+};
+
 export const initAuth = (
-  onAuthSuccess?: (user: User, token: string) => void,
+  onAuthSuccess?: (user: User | any, token: string) => void,
   onAuthFailure?: () => void
 ) => {
+  // Check redirect result first (in case returning from signInWithRedirect)
+  getRedirectResult(auth)
+    .then((result) => {
+      if (result) {
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        if (credential?.accessToken) {
+          cachedAccessToken = credential.accessToken;
+          notifySyncSubscribers();
+          if (onAuthSuccess) onAuthSuccess(result.user, credential.accessToken);
+        }
+      }
+    })
+    .catch((err) => {
+      console.warn('Redirect auth check warning:', err);
+    });
+
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user && cachedAccessToken) {
       if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
@@ -33,31 +110,49 @@ export const initAuth = (
       if (onAuthSuccess && cachedAccessToken) {
         onAuthSuccess(user, cachedAccessToken);
       }
-    } else {
-      cachedAccessToken = null;
+    } else if (!cachedAccessToken) {
       if (onAuthFailure) onAuthFailure();
     }
   });
 };
 
-export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
+export const googleSignIn = async (): Promise<{ user: any; accessToken: string } | null> => {
   try {
     isSigningIn = true;
-    const result = await signInWithPopup(auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-      throw new Error('Google OAuth access token મેળવી શકાયો નથી.');
-    }
 
-    cachedAccessToken = credential.accessToken;
-    notifySyncSubscribers();
-    return { user: result.user, accessToken: cachedAccessToken };
+    // 1. Try Firebase Popup first
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (!credential?.accessToken) {
+        throw new Error('Google OAuth access token મેળવી શકાયો નથી.');
+      }
+
+      cachedAccessToken = credential.accessToken;
+      notifySyncSubscribers();
+      return { user: result.user, accessToken: cachedAccessToken };
+    } catch (popupErr: any) {
+      console.warn('Firebase signInWithPopup failed, trying GIS fallback...', popupErr);
+      
+      // If popup failed due to network error, popup blocked, or unauthorized domain:
+      // Try GIS if available
+      const google = (window as any).google;
+      if (google?.accounts?.oauth2) {
+        return await signInWithGis();
+      }
+      throw popupErr;
+    }
   } catch (error: any) {
     console.error('Sign in error:', error);
     throw error;
   } finally {
     isSigningIn = false;
   }
+};
+
+export const googleSignInWithRedirect = async (): Promise<void> => {
+  isSigningIn = true;
+  await signInWithRedirect(auth, provider);
 };
 
 export const getAccessToken = async (): Promise<string | null> => {
