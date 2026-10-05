@@ -45,15 +45,24 @@ interface InventoryContextType {
   vitranEntries: VitranEntry[];
   tclLogs: TclLogEntry[];
   profile: RegisterProfile;
+  theme: 'dark' | 'light';
+  // Theme
+  toggleTheme: () => void;
+  setTheme: (theme: 'dark' | 'light') => void;
   // Actions
   addStockIn: (payload: StockInPayload) => VitranEntry;
   addVitran: (payload: VitranPayload) => VitranEntry;
   addTclLog: (payload: TclLogPayload) => TclLogEntry;
   deleteTclLog: (id: string) => void;
   addNewStockItem: (item: Omit<StockItem, 'id' | 'createdAt'>) => StockItem;
+  updateStockItem: (itemId: string, updates: Partial<StockItem>) => void;
+  deleteStockItem: (itemId: string) => void;
   updateItemThreshold: (itemId: string, threshold: number) => void;
+  updateBatchQuantity: (batchId: string, quantity: number) => void;
+  deleteBatch: (batchId: string) => void;
   updateProfile: (profile: Partial<RegisterProfile>) => void;
   resetToDefaults: () => void;
+  clearAllData: () => void;
   // Helpers
   getItemTotalStock: (itemId: string) => number;
   getItemBatches: (itemId: string) => BatchItem[];
@@ -67,16 +76,26 @@ interface InventoryContextType {
 }
 
 const STORAGE_KEYS = {
-  ITEMS: 'medstock_dark_items_v3',
-  BATCHES: 'medstock_dark_batches_v3',
-  ENTRIES: 'medstock_dark_entries_v3',
-  TCL_LOGS: 'medstock_dark_tcl_logs_v3',
-  PROFILE: 'medstock_dark_profile_v3',
+  ITEMS: 'medstock_clean_items_v4',
+  BATCHES: 'medstock_clean_batches_v4',
+  ENTRIES: 'medstock_clean_entries_v4',
+  TCL_LOGS: 'medstock_clean_tcl_logs_v4',
+  PROFILE: 'medstock_clean_profile_v4',
+  THEME: 'medstock_theme_v4',
 };
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
 export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [theme, setThemeState] = useState<'dark' | 'light'>(() => {
+    try {
+      const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME);
+      return savedTheme === 'light' ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
   const [stockItems, setStockItems] = useState<StockItem[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.ITEMS);
@@ -121,6 +140,25 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       return initialRegisterProfile;
     }
   });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.THEME, theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const setTheme = (t: 'dark' | 'light') => {
+    setThemeState(t);
+  };
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(stockItems));
@@ -314,7 +352,6 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
         const availableBatches = getItemBatches(chlorinePowderItem.id).filter((b) => b.quantity > 0);
         if (availableBatches.length > 0) {
           const batch = availableBatches[0];
-          // Round kg to 2 decimals, min 0.05 kg or actual
           const kgUsed = Math.max(0.1, Number(payload.tclUsedKg.toFixed(2)));
           if (batch.quantity >= kgUsed) {
             try {
@@ -352,23 +389,55 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     return newItem;
   };
 
+  const updateStockItem = (itemId: string, updates: Partial<StockItem>) => {
+    setStockItems((prev) =>
+      prev.map((i) => (i.id === itemId ? { ...i, ...updates } : i))
+    );
+  };
+
+  const deleteStockItem = (itemId: string) => {
+    setStockItems((prev) => prev.filter((i) => i.id !== itemId));
+    setBatches((prev) => prev.filter((b) => b.itemId !== itemId));
+  };
+
   const updateItemThreshold = (itemId: string, threshold: number) => {
     setStockItems((prev) =>
       prev.map((i) => (i.id === itemId ? { ...i, minThreshold: Math.max(0, threshold) } : i))
     );
   };
 
+  const updateBatchQuantity = (batchId: string, quantity: number) => {
+    setBatches((prev) =>
+      prev.map((b) => (b.id === batchId ? { ...b, quantity: Math.max(0, quantity) } : b))
+    );
+  };
+
+  const deleteBatch = (batchId: string) => {
+    setBatches((prev) => prev.filter((b) => b.id !== batchId));
+  };
+
   const updateProfile = (newProfile: Partial<RegisterProfile>) => {
     setProfile((prev) => ({ ...prev, ...newProfile }));
   };
 
+  // Fresh reset: completely clears all batches, stock transactions and logs
+  const clearAllData = () => {
+    setBatches([]);
+    setVitranEntries([]);
+    setTclLogs([]);
+    localStorage.removeItem(STORAGE_KEYS.BATCHES);
+    localStorage.removeItem(STORAGE_KEYS.ENTRIES);
+    localStorage.removeItem(STORAGE_KEYS.TCL_LOGS);
+    // Also clean any previous version keys
+    localStorage.removeItem('medstock_dark_batches_v3');
+    localStorage.removeItem('medstock_dark_entries_v3');
+    localStorage.removeItem('medstock_dark_tcl_logs_v3');
+  };
+
   const resetToDefaults = () => {
+    clearAllData();
     setStockItems(initialStockItems);
-    setBatches(initialBatches);
-    setVitranEntries(initialVitranEntries);
-    setTclLogs(initialTclLogs);
     setProfile(initialRegisterProfile);
-    localStorage.clear();
   };
 
   return (
@@ -379,14 +448,22 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
         vitranEntries,
         tclLogs,
         profile,
+        theme,
+        toggleTheme,
+        setTheme,
         addStockIn,
         addVitran,
         addTclLog,
         deleteTclLog,
         addNewStockItem,
+        updateStockItem,
+        deleteStockItem,
         updateItemThreshold,
+        updateBatchQuantity,
+        deleteBatch,
         updateProfile,
         resetToDefaults,
+        clearAllData,
         getItemTotalStock,
         getItemBatches,
         getItemStats,

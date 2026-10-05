@@ -13,7 +13,10 @@ import {
   ArrowRight,
   AlertCircle,
   FileCode,
-  HardDrive
+  HardDrive,
+  FolderArchive,
+  GitBranch,
+  Terminal
 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
@@ -23,31 +26,45 @@ interface ApkDownloadModalProps {
 }
 
 export const ApkDownloadModal: React.FC<ApkDownloadModalProps> = ({ isOpen, onClose }) => {
-  const { isInstallable, isInstalled, install } = usePWAInstall();
-  const [copied, setCopied] = useState(false);
+  const { isInstallable, install } = usePWAInstall();
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedGit, setCopiedGit] = useState(false);
 
   if (!isOpen) return null;
 
   const aiStudioUrl = `https://ai.studio/apps/b7c51f6e-ccca-4c63-82cb-0646c5de302e?fullscreenApplet=true`;
 
+  const gitCommands = `# ૧. GitHub માં નવું રીપોઝીટરી બનાવીને આ કમાન્ડ ચલાવો:
+git remote add origin https://github.com/YOUR_USERNAME/medstock-app.git
+git branch -M main
+git push -u origin main
+# GitHub Actions ઓટોમેટિક APK બનાવીને તૈયાર કરી દેશે!`;
+
   const handleCopyLink = () => {
     navigator.clipboard?.writeText(aiStudioUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const handleInstallClick = async () => {
-    if (isInstallable) {
-      await install();
-    } else {
-      alert('તમારા એન્ડ્રોઇડ ફોનમાં Google Chrome બ્રાઉઝરના મેનૂ (ત્રણ ટપકાં ⋮) પર ક્લિક કરીને "Install app" અથવા "Add to Home screen" (હોમ સ્ક્રીન પર ઉમેરો) પસંદ કરો.');
-    }
+  const handleCopyGitCommands = () => {
+    navigator.clipboard?.writeText(gitCommands);
+    setCopiedGit(true);
+    setTimeout(() => setCopiedGit(false), 2000);
   };
 
   const handleDownloadOfflineApp = () => {
     const link = document.createElement('a');
     link.href = '/MedStock_App.html';
     link.download = 'MedStock_Offline_App.html';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadProjectZip = () => {
+    const link = document.createElement('a');
+    link.href = '/medstock-app-project.zip';
+    link.download = 'medstock-app-project.zip';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -60,13 +77,13 @@ export const ApkDownloadModal: React.FC<ApkDownloadModalProps> = ({ isOpen, onCl
         <div className="p-4 bg-gradient-to-r from-emerald-950 via-[#111927] to-teal-950 border-b border-emerald-500/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-400 flex items-center justify-center font-bold">
-              <Smartphone className="w-5 h-5" />
+              <GitBranch className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-black text-sm sm:text-base text-white flex items-center gap-1.5">
-                <span>Android APK & મોબાઇલ એપ મેળવો</span>
+                <span>GitHub & Android APK સેટઅપ</span>
               </h3>
-              <p className="text-[11px] text-slate-400">Mobile Installation & Download Center</p>
+              <p className="text-[11px] text-slate-400">GitHub Actions Automated APK Builder</p>
             </div>
           </div>
           <button
@@ -79,105 +96,105 @@ export const ApkDownloadModal: React.FC<ApkDownloadModalProps> = ({ isOpen, onCl
 
         {/* Content Body */}
         <div className="p-4 sm:p-5 space-y-4 text-xs overflow-y-auto flex-1">
-          {/* Important Explanation about the 404 Error from Screenshot */}
-          <div className="p-3.5 bg-amber-950/40 border border-amber-500/40 rounded-xl flex items-start gap-2.5 text-amber-200">
-            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <span className="font-black text-xs block text-amber-300">
-                "Error: Page not found" શા માટે આવ્યું?
+          {/* GitHub Actions Highlight Banner */}
+          <div className="p-3.5 bg-gradient-to-br from-indigo-950/60 to-purple-950/40 border border-indigo-500/40 rounded-xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-indigo-300 font-bold">
+                <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                <span>GitHub Actions દ્વારા ઓટોમેટિક APK બિલ્ડ તૈયાર છે!</span>
+              </div>
+              <span className="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-700 px-2 py-0.5 rounded-full font-mono">
+                Auto-APK
               </span>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                AI Studio માં Shared Link ચાલુ કરવા માટે ઉપર જમણી બાજુ આપેલા <strong>"Share" (શેર)</strong> બટન પર ક્લિક કરીને પબ્લિશ કરવું જરૂરી છે. ત્યાં સુધી નીચેની સરળ રીતોથી એપ વાપરી શકો છો:
-              </p>
             </div>
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              તમારા પ્રોજેક્ટમાં <code className="bg-slate-900 px-1 py-0.5 rounded text-indigo-300 font-mono">.github/workflows/build-apk.yml</code> અને <code className="bg-slate-900 px-1 py-0.5 rounded text-indigo-300 font-mono">capacitor.config.json</code> ફાઇલ સેટઅપ કરી દેવામાં આવી છે.
+            </p>
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              જ્યારે તમે આ કોડને <strong>GitHub</strong> પર મૂકશો, ત્યારે GitHub પોતાની જાતે Android SDK દ્વારા <strong>.apk ફાઇલ</strong> બનાવીને તમને ડાઉનલોડ કરવા આપી દેશે!
+            </p>
           </div>
 
-          {/* Solution 1: Direct Offline App Download (Zero Server / No 404!) */}
-          <div className="p-4 bg-gradient-to-br from-emerald-950/60 to-teal-950/40 border-2 border-emerald-500/50 rounded-xl space-y-3">
+          {/* Action 1: Download Complete Project ZIP */}
+          <div className="p-3.5 bg-[#0b131e] border border-slate-800 rounded-xl space-y-2.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs">
-                <HardDrive className="w-4 h-4 text-emerald-400" />
-                <span>રીત ૧: સંપૂર્ણ ઓફલાઇન મોબાઇલ એપ ડાઉનલોડ (૧૦૦% કાર્યરત)</span>
-              </div>
-              <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">
-                સૌથી સરળ
+              <span className="font-bold text-white flex items-center gap-1.5">
+                <FolderArchive className="w-4 h-4 text-amber-400" />
+                <span>૧. GitHub માટે આખો પ્રોજેક્ટ ZIP ડાઉનલોડ કરો</span>
               </span>
+              <span className="text-[10px] text-slate-400 font-mono">~300 KB</span>
             </div>
-
-            <p className="text-[11px] text-slate-300 leading-relaxed">
-              આ બટન દબાવવાથી તમારા ફોનમાં <strong>MedStock_Offline_App.html</strong> ડાઉનલોડ થઈ જશે. તેને ખોલવાથી ઇન્ટરનેટ વગર પણ તમામ રજિસ્ટર, સ્ટોક અને કુવા ક્લોરિનેશન ચાલશે!
+            <p className="text-[11px] text-slate-400">
+              આ ઝિપ ફાઇલમાં તમામ કોડ, GitHub Actions વર્કફ્લો અને સેટિંગ્સ શામેલ છે.
             </p>
-
             <button
-              onClick={handleDownloadOfflineApp}
-              className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              onClick={handleDownloadProjectZip}
+              className="w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-slate-950 font-black rounded-xl flex items-center justify-center gap-2 shadow transition-transform active:scale-95 cursor-pointer"
             >
               <Download className="w-4 h-4" />
-              <span>ઓફલાઇન મોબાઇલ એપ ડાઉનલોડ કરો (Download App)</span>
+              <span>Project ZIP ડાઉનલોડ કરો (medstock-app-project.zip)</span>
             </button>
           </div>
 
-          {/* Solution 2: Chrome "Install app" (PWA onto Phone Home Screen) */}
-          <div className="p-3.5 rounded-xl bg-[#0b131e] border border-slate-800 space-y-2.5">
-            <div className="flex items-center gap-2 text-teal-400 font-bold">
-              <Smartphone className="w-4 h-4" />
-              <span>રીત ૨: એન્ડ્રોઇડ હોમ સ્ક્રીન પર APK ની જેમ સેવ કરો</span>
-            </div>
-
-            <ol className="list-decimal list-inside space-y-1.5 text-slate-300 text-[11px] leading-relaxed">
-              <li>
-                નીચેનું બટન દબાવીને <strong>લિંક કોપી કરો</strong> અને તમારા ફોનના <strong>Google Chrome</strong> માં ખોલો.
-              </li>
-              <li>
-                Chrome ના ઉપર જમણી બાજુના <strong>ત્રણ ટપકાં (⋮)</strong> પર ક્લિક કરો.
-              </li>
-              <li>
-                મેનૂમાંથી <strong>"Install app"</strong> અથવા <strong>"Add to Home screen" (હોમ સ્ક્રીન પર ઉમેરો)</strong> પસંદ કરો.
-              </li>
-              <li>
-                તમારા ફોનમાં <strong className="text-emerald-400">મેડસ્ટોક રજિસ્ટર</strong> નું આઇકન આવી જશે!
-              </li>
-            </ol>
-
-            <div className="pt-1 flex items-center gap-2">
+          {/* Action 2: GitHub Push Instructions */}
+          <div className="p-3.5 bg-[#0b131e] border border-slate-800 rounded-xl space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-white flex items-center gap-1.5">
+                <Terminal className="w-4 h-4 text-emerald-400" />
+                <span>૨. GitHub માં અપલોડ કરવાની રીત:</span>
+              </span>
               <button
-                onClick={handleCopyLink}
-                className="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                onClick={handleCopyGitCommands}
+                className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-bold cursor-pointer"
               >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
-                <span>{copied ? 'લિંક કોપી થઈ ગઈ!' : 'ફોન માટે લિંક કોપી કરો (Copy Link)'}</span>
+                {copiedGit ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedGit ? 'કોપી થયું!' : 'કમાન્ડ કોપી કરો'}</span>
               </button>
             </div>
+            <ol className="list-decimal list-inside space-y-1 text-slate-300 text-[11px] leading-relaxed">
+              <li>
+                <a href="https://github.com/new" target="_blank" rel="noopener noreferrer" className="text-teal-400 underline font-bold">github.com/new</a> પર જઈને નવું રીપોઝીટરી બનાવો (e.g. <code>medstock-app</code>).
+              </li>
+              <li>
+                ડાઉનલોડ કરેલ ZIP ફાઇલને GitHub પર અપલોડ કરો અથવા નીચેના ગિટ કમાન્ડ્સ ચલાવો:
+              </li>
+            </ol>
+            <div className="p-2.5 bg-black/60 rounded-lg border border-slate-800 font-mono text-[10px] text-emerald-300 leading-normal overflow-x-auto">
+              git remote add origin https://github.com/YOUR_USERNAME/medstock-app.git<br/>
+              git branch -M main<br/>
+              git push -u origin main
+            </div>
+            <p className="text-[10px] text-slate-400 pt-1">
+              👉 GitHub પેજ પર <strong>"Actions"</strong> ટેબમાં જાઓ, ત્યાં થોડીવારમાં <strong>MedStock-Android-APK (app-debug.apk)</strong> ડાઉનલોડ માટે તૈયાર થઈ જશે!
+            </p>
           </div>
 
-          {/* Solution 3: Fullscreen AI Studio Launcher */}
-          <div className="p-3 rounded-xl bg-[#0b131e] border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="font-bold text-slate-300">રીત ૩: ફૂલસ્ક્રીન મોડમાં સીધું ખોલો:</span>
-              <a
-                href={aiStudioUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-teal-400 hover:underline flex items-center gap-1 font-semibold"
-              >
-                <span>ખોલો ↗</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
+          {/* Action 3: Offline Mobile App Alternative */}
+          <div className="p-3.5 bg-gradient-to-r from-emerald-950/60 to-teal-950/40 border border-emerald-500/40 rounded-xl space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-emerald-300 flex items-center gap-1.5">
+                <HardDrive className="w-4 h-4 text-emerald-400" />
+                <span>૩. અથવા સીધી ઓફલાઇન એપ વાપરો (કોઈ સેટઅપ વગર)</span>
+              </span>
             </div>
-            <p className="text-[10px] text-slate-400 leading-normal font-mono bg-black/40 p-2 rounded border border-slate-800 break-all select-all">
-              {aiStudioUrl}
-            </p>
+            <button
+              onClick={handleDownloadOfflineApp}
+              className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-lg flex items-center justify-center gap-1.5 shadow transition-transform active:scale-95 cursor-pointer text-xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>MedStock_Offline_App.html ડાઉનલોડ કરો</span>
+            </button>
           </div>
         </div>
 
         {/* Footer */}
         <div className="p-3 bg-[#0b131e] border-t border-slate-800 flex items-center justify-between">
           <span className="text-[11px] text-slate-400">
-            મેડસ્ટોક લેજર v3.0 (ઓફલાઇન સક્રિય)
+            Git Commit: Ready on branch `main`
           </span>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl cursor-pointer"
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl cursor-pointer text-xs"
           >
             બંધ કરો (Close)
           </button>
