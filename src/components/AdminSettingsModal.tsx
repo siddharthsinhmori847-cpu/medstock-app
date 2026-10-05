@@ -553,6 +553,46 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* Android APK Download Card */}
+              <div
+                className={`p-4 rounded-2xl border ${
+                  isDark
+                    ? 'bg-gradient-to-r from-indigo-950/40 via-slate-900 to-indigo-950/30 border-indigo-500/30'
+                    : 'bg-gradient-to-r from-indigo-50 via-white to-indigo-50/70 border-indigo-200'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                      <Download className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                          MedStock Android APK (v2.6.0 અપડેટ)
+                        </h4>
+                        <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">
+                          GitHub Release
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        સાપ્તાહિક/માસિક PDF અને પ્રિન્ટ સપોર્ટ સાથેનું અદ્યતન એન્ડ્રોઇડ વર્ઝન ડાઉનલોડ કરો.
+                      </p>
+                    </div>
+                  </div>
+
+                  <a
+                    href="https://github.com/siddharthsinhmori847-cpu/medstock-app/releases/download/v2.6.0/medstock-app.apk"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>નવું APK ડાઉનલોડ કરો</span>
+                  </a>
+                </div>
+              </div>
             </div>
           )}
 
