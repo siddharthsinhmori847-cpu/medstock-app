@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   RefreshCw,
   ExternalLink,
-  AlertCircle
+  Package
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 
@@ -34,14 +34,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
 }) => {
-  const { profile, theme, toggleTheme, syncState } = useInventory();
+  const { profile, theme, toggleTheme, syncState, stockItems } = useInventory();
   const isDark = theme === 'dark';
+
+  const essentialKeys = ['clorine-powder', 'clorine-tablet', 'iron-tablet-small', 'iron-tablet-big'];
+  const otherItemsCount = stockItems.filter((i) => !essentialKeys.includes(i.key)).length;
 
   const tabs = [
     { id: 'DASHBOARD', label: 'મુખ્ય ડેશબોર્ડ' },
     { id: 'CHLORINE_POWDER', label: 'ક્લોરિન પાવડર' },
     { id: 'CHLORINE_TAB', label: 'ક્લોરિન ટેબ્લેટ' },
     { id: 'IRON_TABS', label: 'આયર્ન ગોળીઓ' },
+    { id: 'OTHER_STOCK', label: `અન્ય સ્ટોક (${otherItemsCount})` },
     { id: 'TCL_LOG', label: 'કુવા ક્લોરિનેશન રજિસ્ટર' },
     { id: 'VITRAN', label: 'વિતરણ ડાયરી / ખાતાવહી' },
   ];

@@ -7,6 +7,7 @@ import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { Navbar } from './components/Navbar';
 import { DarkDashboard } from './components/DarkDashboard';
 import { SingleItemDetailView } from './components/SingleItemDetailView';
+import { OtherStockView } from './components/OtherStockView';
 import { TclLogBook } from './components/TclLogBook';
 import { VitranRegister } from './components/VitranRegister';
 import { StockInModal } from './components/StockInModal';
@@ -23,8 +24,7 @@ import {
   ArrowUpRight,
   Plus,
   Settings,
-  Sun,
-  Moon
+  Package
 } from 'lucide-react';
 
 export type AppTab =
@@ -32,6 +32,7 @@ export type AppTab =
   | 'CHLORINE_POWDER'
   | 'CHLORINE_TAB'
   | 'IRON_TABS'
+  | 'OTHER_STOCK'
   | 'TCL_LOG'
   | 'VITRAN';
 
@@ -87,6 +88,7 @@ const MainAppContent: React.FC = () => {
             onOpenVitran={handleOpenVitran}
             onOpenAddTcl={() => setAddTclOpen(true)}
             onOpenAdminSettings={() => setAdminOpen(true)}
+            onOpenAddItem={() => setAddItemOpen(true)}
             onNavigateTab={setActiveTab}
           />
         )}
@@ -121,10 +123,19 @@ const MainAppContent: React.FC = () => {
           />
         )}
 
-        {/* Tab 5: TCL Log Book & Chlorination Calculator */}
+        {/* Tab 5: Other Stock & Custom Medicines View */}
+        {activeTab === 'OTHER_STOCK' && (
+          <OtherStockView
+            onOpenStockIn={handleOpenStockIn}
+            onOpenVitran={handleOpenVitran}
+            onOpenAddItem={() => setAddItemOpen(true)}
+          />
+        )}
+
+        {/* Tab 6: TCL Log Book & Chlorination Calculator */}
         {activeTab === 'TCL_LOG' && <TclLogBook />}
 
-        {/* Tab 6: Vitran Diary / Ledger */}
+        {/* Tab 7: Vitran Diary / Ledger */}
         {activeTab === 'VITRAN' && (
           <VitranRegister
             onOpenStockIn={handleOpenStockIn}
@@ -157,6 +168,18 @@ const MainAppContent: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('OTHER_STOCK')}
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-bold py-1 px-2 rounded-xl transition-all cursor-pointer ${
+            activeTab === 'OTHER_STOCK'
+              ? 'text-purple-400 font-black'
+              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+          }`}
+        >
+          <Package className="w-4 h-4" />
+          <span>અન્ય સ્ટોક</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('TCL_LOG')}
           className={`flex flex-col items-center gap-0.5 text-[10px] font-bold py-1 px-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'TCL_LOG'
@@ -168,15 +191,6 @@ const MainAppContent: React.FC = () => {
           <span>TCL કુવો</span>
         </button>
 
-        {/* Direct Add Kuvo Chlorination Button in Bottom Bar */}
-        <button
-          onClick={() => setAddTclOpen(true)}
-          className="bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-black text-xs px-3.5 py-2 rounded-xl flex items-center gap-1 shadow-lg transition-transform active:scale-95 cursor-pointer border border-cyan-400/40"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ કુવો</span>
-        </button>
-
         <button
           onClick={() => handleOpenVitran()}
           className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-3 py-2 rounded-xl flex items-center gap-1 shadow-md transition-transform active:scale-95 cursor-pointer border border-rose-500"
@@ -185,7 +199,6 @@ const MainAppContent: React.FC = () => {
           <span>- વિતરણ</span>
         </button>
 
-        {/* Mobile Admin Settings Button */}
         <button
           onClick={() => setAdminOpen(true)}
           className={`flex flex-col items-center gap-0.5 text-[10px] font-bold py-1 px-2 rounded-xl transition-all cursor-pointer ${

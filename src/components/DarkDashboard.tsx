@@ -11,7 +11,9 @@ import {
   FileText,
   ChevronRight,
   Plus,
-  Settings
+  Settings,
+  Package,
+  Layers
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 
@@ -20,7 +22,8 @@ interface DarkDashboardProps {
   onOpenVitran: (itemId?: string) => void;
   onOpenAddTcl: () => void;
   onOpenAdminSettings?: () => void;
-  onNavigateTab: (tab: 'DASHBOARD' | 'CHLORINE_POWDER' | 'CHLORINE_TAB' | 'IRON_TABS' | 'TCL_LOG' | 'VITRAN') => void;
+  onOpenAddItem?: () => void;
+  onNavigateTab: (tab: any) => void;
 }
 
 export const DarkDashboard: React.FC<DarkDashboardProps> = ({
@@ -28,6 +31,7 @@ export const DarkDashboard: React.FC<DarkDashboardProps> = ({
   onOpenVitran,
   onOpenAddTcl,
   onOpenAdminSettings,
+  onOpenAddItem,
   onNavigateTab,
 }) => {
   const { stockItems, tclLogs, profile, getItemStats, theme } = useInventory();
@@ -43,6 +47,11 @@ export const DarkDashboard: React.FC<DarkDashboardProps> = ({
   const ctStats = chlorineTab ? getItemStats(chlorineTab.id) : { totalStock: 0 };
   const isStats = ironSmall ? getItemStats(ironSmall.id) : { totalStock: 0 };
   const ibStats = ironBig ? getItemStats(ironBig.id) : { totalStock: 0 };
+
+  // Other Stock Items
+  const essentialKeys = ['clorine-powder', 'clorine-tablet', 'iron-tablet-small', 'iron-tablet-big'];
+  const otherItems = stockItems.filter((i) => !essentialKeys.includes(i.key));
+  const otherTotalStock = otherItems.reduce((sum, item) => sum + getItemStats(item.id).totalStock, 0);
 
   const now = new Date();
   const dateFormatted = now.toLocaleDateString('gu-IN', {
@@ -98,15 +107,13 @@ export const DarkDashboard: React.FC<DarkDashboardProps> = ({
           <h2 className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             OVERVIEW (મુખ્ય સ્ટોક વિગત)
           </h2>
-          {onOpenAdminSettings && (
-            <button
-              onClick={onOpenAdminSettings}
-              className="text-xs text-teal-500 hover:underline font-bold flex items-center gap-1"
-            >
-              <span>સ્ટોક સુધારો / એડમિન</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          )}
+          <button
+            onClick={() => onNavigateTab('OTHER_STOCK')}
+            className="text-xs text-purple-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+          >
+            <span>+ અન્ય સ્ટોક / દવાઓ</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
@@ -214,41 +221,85 @@ export const DarkDashboard: React.FC<DarkDashboardProps> = ({
             </div>
           </div>
 
-          {/* Card 5: TCL Well Chlorination Log Book (Rose/Pink accent) */}
+          {/* Card 5: OTHER STOCK (Purple Accent - Dynamically shows added items & allows adding tabs) */}
+          <div
+            onClick={() => onNavigateTab('OTHER_STOCK')}
+            className={`col-span-2 sm:col-span-1 border-l-4 border-l-purple-500 border rounded-2xl p-4 sm:p-5 cursor-pointer transition-all shadow-md group flex flex-col justify-between ${
+              isDark
+                ? 'bg-[#111927] border-slate-800 hover:border-purple-500/50'
+                : 'bg-white border-slate-200 hover:border-purple-500/50 shadow-slate-200'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                  <Package className="w-5 h-5 text-purple-500" />
+                </div>
+                {onOpenAddItem && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenAddItem();
+                    }}
+                    className="p-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>+ દવા ટેબ</span>
+                  </button>
+                )}
+              </div>
+              <div className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                {otherItems.length}{' '}
+                <span className="text-xs font-normal text-slate-400">દવાઓ / આઇટમ</span>
+              </div>
+              <div className={`text-xs font-medium mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                અન્ય દવા & સાધન સામગ્રી (Other Stock)
+              </div>
+            </div>
+            <div className={`mt-3 pt-2 border-t flex items-center justify-between text-[11px] font-bold text-purple-500 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+              <span>અન્ય સ્ટોક ટેબ જુઓ</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </div>
+
+          {/* Card 6: TCL Well Chlorination Log Book (Rose/Pink accent) */}
           <div
             onClick={() => onNavigateTab('TCL_LOG')}
-            className={`col-span-2 border-l-4 border-l-rose-500 border rounded-2xl p-4 sm:p-5 cursor-pointer transition-all shadow-md group flex items-center justify-between ${
+            className={`col-span-2 sm:col-span-1 border-l-4 border-l-rose-500 border rounded-2xl p-4 sm:p-5 cursor-pointer transition-all shadow-md group flex flex-col justify-between ${
               isDark
                 ? 'bg-[#111927] border-slate-800 hover:border-rose-500/50'
                 : 'bg-white border-slate-200 hover:border-rose-500/50 shadow-slate-200'
             }`}
           >
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-500 flex items-center justify-center shrink-0">
-                <Droplet className="w-6 h-6 text-rose-500" />
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-500 flex items-center justify-center">
+                  <Droplet className="w-5 h-5 text-rose-500" />
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenAddTcl();
+                  }}
+                  className="p-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>+ કુવો</span>
+                </button>
               </div>
-              <div>
-                <div className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  {tclLogs.length}
-                </div>
-                <div className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                  કુવા ક્લોરિનેશન રજિસ્ટર (Wells Treated)
-                </div>
+              <div className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                {tclLogs.length}{' '}
+                <span className="text-xs font-normal text-slate-400">કુવા રજિસ્ટર</span>
+              </div>
+              <div className={`text-xs font-medium mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                કુવા ક્લોરિનેશન રજિસ્ટર (Wells Treated)
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenAddTcl();
-                }}
-                className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs flex items-center gap-1 shadow-md cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>+ કુવો ક્લોરિનેશન</span>
-              </button>
-              <ChevronRight className="w-4 h-4 text-slate-400" />
+            <div className={`mt-3 pt-2 border-t flex items-center justify-between text-[11px] font-bold text-rose-500 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+              <span>કુવા લોગબુક જુઓ</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </div>
         </div>
@@ -294,20 +345,20 @@ export const DarkDashboard: React.FC<DarkDashboardProps> = ({
             </span>
           </button>
 
-          {/* Menu 3: Add Well Chlorination Directly */}
+          {/* Menu 3: Other Stock */}
           <button
-            onClick={onOpenAddTcl}
-            className={`border rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all shadow-md group active:scale-95 ${
+            onClick={() => onNavigateTab('OTHER_STOCK')}
+            className={`border rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all shadow-xs group active:scale-95 ${
               isDark
-                ? 'bg-gradient-to-br from-cyan-950/70 to-[#111927] hover:from-cyan-900/60 border-cyan-500/40'
-                : 'bg-cyan-50 hover:bg-cyan-100/70 border-cyan-200'
+                ? 'bg-[#111927] hover:bg-[#162234] border-slate-800 hover:border-purple-500/50'
+                : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-purple-500/50 shadow-slate-100'
             }`}
           >
-            <div className="w-11 h-11 rounded-xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 flex items-center justify-center group-hover:scale-105 transition-transform border border-cyan-400/40">
-              <Plus className="w-5 h-5" />
+            <div className="w-11 h-11 rounded-xl bg-purple-500/20 text-purple-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Package className="w-5 h-5" />
             </div>
-            <span className="text-xs font-black text-cyan-600 dark:text-cyan-300 text-center leading-tight">
-              + કુવો ક્લોરિનેશન
+            <span className={`text-xs font-bold text-center leading-tight ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+              અન્ય સ્ટોક ટેબ
             </span>
           </button>
 
@@ -316,11 +367,11 @@ export const DarkDashboard: React.FC<DarkDashboardProps> = ({
             onClick={() => onNavigateTab('VITRAN')}
             className={`border rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all shadow-xs group active:scale-95 ${
               isDark
-                ? 'bg-[#111927] hover:bg-[#162234] border-slate-800 hover:border-purple-500/50'
-                : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-purple-500/50 shadow-slate-100'
+                ? 'bg-[#111927] hover:bg-[#162234] border-slate-800 hover:border-cyan-500/50'
+                : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-cyan-500/50 shadow-slate-100'
             }`}
           >
-            <div className="w-11 h-11 rounded-xl bg-purple-500/20 text-purple-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <div className="w-11 h-11 rounded-xl bg-cyan-500/20 text-cyan-500 flex items-center justify-center group-hover:scale-105 transition-transform">
               <FileText className="w-5 h-5" />
             </div>
             <span className={`text-xs font-bold text-center leading-tight ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
