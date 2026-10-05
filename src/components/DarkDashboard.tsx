@@ -13,7 +13,9 @@ import {
   Plus,
   Settings,
   Package,
-  Layers
+  Layers,
+  Printer,
+  Download
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 
@@ -23,6 +25,7 @@ interface DarkDashboardProps {
   onOpenAddTcl: () => void;
   onOpenAdminSettings?: () => void;
   onOpenAddItem?: () => void;
+  onOpenPrint?: (type?: 'VITRAN' | 'TCL' | 'STOCK') => void;
   onNavigateTab: (tab: any) => void;
 }
 
@@ -32,6 +35,7 @@ export const DarkDashboard: React.FC<DarkDashboardProps> = ({
   onOpenAddTcl,
   onOpenAdminSettings,
   onOpenAddItem,
+  onOpenPrint,
   onNavigateTab,
 }) => {
   const { stockItems, tclLogs, profile, getItemStats, theme } = useInventory();
@@ -100,6 +104,47 @@ export const DarkDashboard: React.FC<DarkDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Quick PDF Reports Strip (Weekly, Monthly, Yearly) */}
+      {onOpenPrint && (
+        <div
+          className={`p-3 sm:p-4 rounded-2xl border transition-all ${
+            isDark
+              ? 'bg-gradient-to-r from-indigo-950/40 via-slate-900 to-indigo-950/30 border-indigo-500/30 shadow-md'
+              : 'bg-gradient-to-r from-indigo-50 via-white to-indigo-50/60 border-indigo-200 shadow-xs'
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>રજિસ્ટર PDF રિપોર્ટ ડાઉનલોડ (Weekly / Monthly / Yearly)</span>
+                  <span className="text-[10px] bg-rose-500 text-white font-black px-1.5 py-0.2 rounded">
+                    PDF
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  અધિકારી/PHC રિપોર્ટિંગ માટે સાપ્તાહિક, માસિક અથવા વાર્ષિક રજિસ્ટર PDF મેળવો.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => onOpenPrint('VITRAN')}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>PDF રિપોર્ટ ખોલો</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2. OVERVIEW SECTION (Stock Cards) */}
       <div className="space-y-3">
@@ -310,7 +355,7 @@ export const DarkDashboard: React.FC<DarkDashboardProps> = ({
         <h2 className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           MAIN MENU (મુખ્ય મેનૂ)
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
           {/* Menu 1: Stock In */}
           <button
             onClick={() => onOpenStockIn()}
@@ -378,6 +423,25 @@ export const DarkDashboard: React.FC<DarkDashboardProps> = ({
               વિતરણ રજિસ્ટર
             </span>
           </button>
+
+          {/* Menu 5: PDF Report */}
+          {onOpenPrint && (
+            <button
+              onClick={() => onOpenPrint('VITRAN')}
+              className={`border rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all shadow-xs group active:scale-95 col-span-2 sm:col-span-1 ${
+                isDark
+                  ? 'bg-gradient-to-b from-[#111927] to-indigo-950/40 hover:bg-[#162234] border-indigo-500/40 hover:border-indigo-400'
+                  : 'bg-gradient-to-b from-white to-indigo-50/50 hover:bg-slate-50 border-indigo-300 hover:border-indigo-500 shadow-slate-100'
+              }`}
+            >
+              <div className="w-11 h-11 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Printer className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+              </div>
+              <span className={`text-xs font-bold text-center leading-tight ${isDark ? 'text-indigo-300' : 'text-indigo-900'}`}>
+                PDF / પ્રિન્ટ રિપોર્ટ
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </div>

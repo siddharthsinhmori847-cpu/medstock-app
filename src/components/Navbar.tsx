@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   RefreshCw,
   ExternalLink,
-  Package
+  Package,
+  Printer
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 
@@ -138,6 +139,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             title={isDark ? 'લાઇટ મોડ ચાલુ કરો' : 'ડાર્ક મોડ ચાલુ કરો'}
           >
             {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
+          </button>
+
+          {/* PDF & Print Button */}
+          <button
+            type="button"
+            onClick={onOpenPrint}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer"
+            title="PDF ડાઉનલોડ & પ્રિન્ટ રિપોર્ટ (Weekly/Monthly/Yearly)"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">PDF / પ્રિન્ટ</span>
           </button>
 
           {/* Admin Settings Button */}

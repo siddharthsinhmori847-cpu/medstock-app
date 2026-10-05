@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { VitranEntry } from '../types/inventory';
+import { downloadOrShareFile } from '../utils/pdfGenerator';
 
 interface VitranRegisterProps {
   onOpenStockIn: (itemId?: string) => void;
@@ -79,7 +80,7 @@ export const VitranRegister: React.FC<VitranRegisterProps> = ({
   }, [vitranEntries, selectedFilterId, actionFilter, dateFilter, searchQuery]);
 
   // CSV Export
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     const headers = [
       'તારીખ (Date)',
       'દવાનું નામ (Item)',
@@ -114,13 +115,15 @@ export const VitranRegister: React.FC<VitranRegisterProps> = ({
 
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const fileName = `Stock_Vitran_Register_${new Date().toISOString().split('T')[0]}.csv`;
+    const file = new File([blob], fileName, { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Stock_Vitran_Register_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    await downloadOrShareFile(file, url, `${profile.centerNameGu || 'સ્ટોક રજિસ્ટર'} વિતરણ CSV`);
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 60000);
   };
 
   // WhatsApp Share

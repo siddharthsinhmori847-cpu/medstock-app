@@ -17,7 +17,11 @@ import { useInventory } from '../context/InventoryContext';
 import { TclLogEntry } from '../types/inventory';
 import { AddTclLogModal } from './AddTclLogModal';
 
-export const TclLogBook: React.FC = () => {
+interface TclLogBookProps {
+  onOpenPrint?: (type?: 'VITRAN' | 'TCL' | 'STOCK') => void;
+}
+
+export const TclLogBook: React.FC<TclLogBookProps> = ({ onOpenPrint }) => {
   const { tclLogs, deleteTclLog, stockItems, getItemTotalStock } = useInventory();
   const [modalOpen, setModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -52,7 +56,11 @@ ${log.testedPpm ? `🔬 OT ટેસ્ટ PPM: ${log.testedPpm} PPM` : ''}
   };
 
   const handlePrint = () => {
-    window.print();
+    if (onOpenPrint) {
+      onOpenPrint('TCL');
+    } else {
+      window.print();
+    }
   };
 
   return (

@@ -1,6 +1,7 @@
 import { StockItem, BatchItem, VitranEntry, TclLogEntry, RegisterProfile } from '../types/inventory';
+import { downloadOrShareFile } from './pdfGenerator';
 
-export const exportStockDataToCsv = (
+export const exportStockDataToCsv = async (
   stockItems: StockItem[],
   batches: BatchItem[],
   vitranEntries: VitranEntry[],
@@ -51,15 +52,15 @@ export const exportStockDataToCsv = (
     csvContent += `"${index + 1}","${t.date}","${t.location}","${t.wellOwnerName}","${t.shape === 'CIRCULAR' ? 'ગોળ' : 'ચોરસ'}","${t.waterVolumeLiters}","${t.tclUsedGrams}","${t.operatorName}"\n`;
   });
 
-  // Create download link
+  // Create download link / share for APK
   const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
   const fileName = `MedStock_Register_${new Date().toISOString().split('T')[0]}.csv`;
-  link.setAttribute('href', url);
-  link.setAttribute('download', fileName);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  const file = new File([blob], fileName, { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+
+  await downloadOrShareFile(file, url, `${profile.centerNameGu || 'સ્ટોક રજિસ્ટર'} CSV`);
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 60000);
 };

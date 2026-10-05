@@ -49,8 +49,14 @@ const MainAppContent: React.FC = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [activeItemId, setActiveItemId] = useState<string | undefined>();
+  const [printReportType, setPrintReportType] = useState<'VITRAN' | 'TCL' | 'STOCK'>('VITRAN');
 
   const isDark = theme === 'dark';
+
+  const handleOpenPrint = (type: 'VITRAN' | 'TCL' | 'STOCK' = 'VITRAN') => {
+    setPrintReportType(type);
+    setPrintOpen(true);
+  };
 
   const handleOpenStockIn = (itemId?: string) => {
     setActiveItemId(itemId);
@@ -72,7 +78,7 @@ const MainAppContent: React.FC = () => {
       <Navbar
         onOpenStockIn={() => handleOpenStockIn()}
         onOpenVitran={() => handleOpenVitran()}
-        onOpenPrint={() => setPrintOpen(true)}
+        onOpenPrint={() => handleOpenPrint('VITRAN')}
         onOpenProfile={() => setProfileOpen(true)}
         onOpenAdminSettings={() => setAdminOpen(true)}
         activeTab={activeTab}
@@ -89,6 +95,7 @@ const MainAppContent: React.FC = () => {
             onOpenAddTcl={() => setAddTclOpen(true)}
             onOpenAdminSettings={() => setAdminOpen(true)}
             onOpenAddItem={() => setAddItemOpen(true)}
+            onOpenPrint={handleOpenPrint}
             onNavigateTab={setActiveTab}
           />
         )}
@@ -133,14 +140,14 @@ const MainAppContent: React.FC = () => {
         )}
 
         {/* Tab 6: TCL Log Book & Chlorination Calculator */}
-        {activeTab === 'TCL_LOG' && <TclLogBook />}
+        {activeTab === 'TCL_LOG' && <TclLogBook onOpenPrint={handleOpenPrint} />}
 
         {/* Tab 7: Vitran Diary / Ledger */}
         {activeTab === 'VITRAN' && (
           <VitranRegister
             onOpenStockIn={handleOpenStockIn}
             onOpenVitran={handleOpenVitran}
-            onOpenPrint={() => setPrintOpen(true)}
+            onOpenPrint={() => handleOpenPrint('VITRAN')}
             selectedFilterId="ALL"
             onSelectFilterId={() => {}}
           />
@@ -247,6 +254,7 @@ const MainAppContent: React.FC = () => {
       <PrintRegisterModal
         isOpen={printOpen}
         onClose={() => setPrintOpen(false)}
+        defaultReportType={printReportType}
       />
 
       <PersonalProfileModal
