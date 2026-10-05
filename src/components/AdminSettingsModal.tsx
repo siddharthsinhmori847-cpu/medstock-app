@@ -16,7 +16,10 @@ import {
   Save,
   Check,
   ExternalLink,
-  LogOut
+  LogOut,
+  Smartphone,
+  Download,
+  ShieldCheck
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { StockItem } from '../types/inventory';
@@ -56,7 +59,7 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
     getItemTotalStock,
   } = useInventory();
 
-  const [activeTab, setActiveTab] = useState<'STOCK' | 'THEME' | 'DATA' | 'SHEETS'>('STOCK');
+  const [activeTab, setActiveTab] = useState<'STOCK' | 'THEME' | 'DATA' | 'SHEETS' | 'APK'>('STOCK');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editNameGu, setEditNameGu] = useState('');
   const [editUnitGu, setEditUnitGu] = useState('');
@@ -71,9 +74,6 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
   const [lastSyncUrl, setLastSyncUrl] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(() => {
-    return localStorage.getItem('medstock_autosave') !== 'false';
-  });
 
   useEffect(() => {
     const unsubscribe = initAuth(
@@ -99,7 +99,6 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
       if (res) {
         setGoogleUser(res.user);
         setGoogleToken(res.accessToken);
-        // Trigger initial sync right away!
         handleManualSync(res.accessToken);
       }
     } catch (err: any) {
@@ -197,13 +196,13 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
             <div>
               <h2 className="text-lg font-black tracking-tight">એડમિન કંટ્રોલ અને સેટિંગ્સ</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                સ્ટોક એડિટ, થીમ (ડાર્ક/લાઇટ), ડેટા ક્લિયર અને Google ડ્રાઈવ/શીટ ઓટો-સેવ
+                સ્ટોક એડિટ, થીમ, Google શીટ્સ, APK અપડેટ અને ફ્રેશ ડેટા
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className={`p-2 rounded-xl transition-colors ${
+            className={`p-2 rounded-xl transition-colors cursor-pointer ${
               isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-200 text-slate-600'
             }`}
           >
@@ -219,7 +218,7 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
         >
           <button
             onClick={() => setActiveTab('STOCK')}
-            className={`flex-1 min-w-[110px] py-3 px-3 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
+            className={`flex-1 min-w-[105px] py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'STOCK'
                 ? 'border-teal-500 text-teal-500 font-black'
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -231,38 +230,50 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
 
           <button
             onClick={() => setActiveTab('THEME')}
-            className={`flex-1 min-w-[110px] py-3 px-3 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
+            className={`flex-1 min-w-[105px] py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'THEME'
                 ? 'border-teal-500 text-teal-500 font-black'
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
             {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            <span>થીમ (Dark/Light)</span>
+            <span>થીમ</span>
           </button>
 
           <button
             onClick={() => setActiveTab('SHEETS')}
-            className={`flex-1 min-w-[125px] py-3 px-3 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
+            className={`flex-1 min-w-[115px] py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'SHEETS'
                 ? 'border-emerald-500 text-emerald-500 font-black'
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Google Drive/Sheets</span>
+            <span>Google Sheets</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('APK')}
+            className={`flex-1 min-w-[115px] py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'APK'
+                ? 'border-cyan-500 text-cyan-500 font-black'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <Smartphone className="w-4 h-4" />
+            <span>Android APK</span>
           </button>
 
           <button
             onClick={() => setActiveTab('DATA')}
-            className={`flex-1 min-w-[110px] py-3 px-3 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
+            className={`flex-1 min-w-[105px] py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'DATA'
                 ? 'border-rose-500 text-rose-500 font-black'
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
             <Trash2 className="w-4 h-4" />
-            <span>ડેટા ફ્રેશ કરો</span>
+            <span>ફ્રેશ ડેટા</span>
           </button>
         </div>
 
@@ -680,22 +691,90 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
                   </p>
                 )}
               </div>
+            </div>
+          )}
 
-              {/* Info details */}
-              <div className="p-3 rounded-xl border border-dashed dark:border-slate-700 border-slate-300 text-xs text-slate-500 dark:text-slate-400 space-y-1.5">
-                <p className="font-bold text-slate-700 dark:text-slate-300">
-                  📌 ગૂગલ શીટમાં કઈ ૩ શીટ્સ ઓટોમેટિક બનશે?
+          {/* TAB 4: ANDROID APK UPDATE & DOWNLOAD */}
+          {activeTab === 'APK' && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-bold text-sm flex items-center gap-2 text-cyan-400">
+                  <Smartphone className="w-4 h-4 text-cyan-400" />
+                  <span>Android APK ડાઉનલોડ & અપડેટ (v2.5.0)</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  તમારા એન્ડ્રોઇડ ફોનમાં એપ ઇન્સ્ટોલ કરવા માટે નીચેથી લેટેસ્ટ APK સીધી ડાઉનલોડ કરો.
                 </p>
-                <ul className="list-disc list-inside space-y-1 pl-1">
-                  <li><strong>Current Stock (હાલનો સ્ટોક):</strong> તમામ દવાનું નામ, કેટેગરી, હાલનો જથ્થો અને એલર્ટ સ્થિતિ</li>
-                  <li><strong>Vitran Register (વિતરણ ખાતાવહી):</strong> તમામ આવક (Inward) અને વિતરણની તારીખવાર નોંધ</li>
-                  <li><strong>TCL Chlorination (કુવા રજિસ્ટર):</strong> કુવા અને ટાંકીની વિગતો, TCL વપરાશ અને OT ટેસ્ટ PPM</li>
-                </ul>
+              </div>
+
+              {/* APK Card */}
+              <div
+                className={`p-5 rounded-2xl border shadow-lg space-y-4 ${
+                  isDark ? 'bg-slate-900 border-cyan-500/30' : 'bg-cyan-50/50 border-cyan-200'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                      <Smartphone className="w-6 h-6 text-cyan-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-black text-base">MedStock Android App</h4>
+                        <span className="text-[10px] bg-cyan-500/20 text-cyan-300 font-bold px-2 py-0.5 rounded-full border border-cyan-500/40">
+                          v2.5.0 લેટેસ્ટ
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        સાઈઝ: ૪.૬ MB • ફુલ ઓફલાઇન સપોર્ટ • બેકગ્રાઉન્ડ Google સિંક
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/30">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Verified</span>
+                  </span>
+                </div>
+
+                {/* Direct Download Button */}
+                <div className="pt-2 flex flex-col sm:flex-row items-center gap-2.5">
+                  <a
+                    href="/medstock-app.apk"
+                    download="medstock-app.apk"
+                    className="w-full sm:flex-1 py-3 px-4 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>લેટેસ્ટ APK ડાઉનલોડ કરો (Direct APK)</span>
+                  </a>
+
+                  <a
+                    href="https://github.com/siddharthsinhmori847-cpu/medstock-app/releases/tag/v2.5.0"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 flex items-center justify-center gap-2"
+                  >
+                    <span>GitHub Release</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+
+                {/* Installation guide */}
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                  <p className="font-bold text-slate-300">
+                    📲 મોબાઈલમાં કેવી રીતે ઇન્સ્ટોલ કરવું?
+                  </p>
+                  <ol className="list-decimal list-inside space-y-0.5 pl-1">
+                    <li>ઉપરના બટન પર ક્લિક કરીને <strong>APK ફાઇલ ડાઉનલોડ</strong> કરો.</li>
+                    <li>મોબાઇલના Downloads ફોલ્ડરમાં જઈને <strong>medstock-app.apk</strong> પર ક્લિક કરો.</li>
+                    <li>જો સુરક્ષા સંદેશ પૂછે તો <strong>"Install anyway"</strong> અથવા <strong>"Allow from this source"</strong> પસંદ કરો.</li>
+                  </ol>
+                </div>
               </div>
             </div>
           )}
 
-          {/* TAB 4: DATA RESET / FRESH */}
+          {/* TAB 5: DATA RESET / FRESH */}
           {activeTab === 'DATA' && (
             <div className="space-y-4">
               <div>
@@ -759,7 +838,7 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
             isDark ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
           }`}
         >
-          <span>મેડસ્ટોક એડમિન પોર્ટલ v2.5</span>
+          <span>મેડસ્ટોક એડમિન પોર્ટલ v2.5.0</span>
           <button
             type="button"
             onClick={onClose}
