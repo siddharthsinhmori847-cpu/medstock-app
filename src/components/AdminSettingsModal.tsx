@@ -17,8 +17,10 @@ import {
   Check,
   ExternalLink,
   LogOut,
-  Download
+  Download,
+  Info
 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { useInventory } from '../context/InventoryContext';
 import { StockItem } from '../types/inventory';
 import { exportStockDataToCsv } from '../utils/exportCsv';
@@ -662,50 +664,104 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
                 }`}
               >
                 {!googleUser ? (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                        <FileSpreadsheet className="w-6 h-6 text-emerald-500" />
+                  Capacitor.isNativePlatform() ? (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 mt-0.5">
+                          <Info className="w-5 h-5 text-amber-500" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                            <span>Android APK માં Google Sign-in ની જરૂર નથી</span>
+                            <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full">
+                              ઓફલાઇન સુરક્ષિત
+                            </span>
+                          </h4>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Google ના સિક્યોરિટી નિયમ (OAuth 2.0 Policy) મુજબ Android APK માંથી બ્રાઉઝર લોગિન માન્ય નથી હોતું (જેથી <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-[10px] font-mono text-rose-500">Error 400: origin_mismatch</code> આવે છે).
+                          </p>
+                          <p className="text-xs font-semibold text-teal-600 dark:text-teal-400 pt-1">
+                            ✅ MedStock નો તમારો તમામ સ્ટોક અને રજિસ્ટર ડેટા તમારા ફોનમાં જ સુરક્ષિત છે. Excel/Sheets ફાઇલ માટે ઉપરનું <strong>"૧-ક્લિક સીધી શીટ ડાઉનલોડ"</strong> બટન વાપરો.
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-sm">ગૂગલ એકાઉન્ટ કનેક્ટ કરો</h4>
-                        <p className="text-xs text-slate-400">
-                          ઓટો-સેવ અને શીટ બેકઅપ માટે Google સાથે ૧-ક્લિક સાઇન-ઇન કરો.
-                        </p>
+
+                      <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-200 dark:border-slate-700/60">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            exportStockDataToCsv(
+                              stockItems,
+                              batches,
+                              vitranEntries,
+                              tclLogs,
+                              profile,
+                              getItemTotalStock
+                            )
+                          }
+                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                        >
+                          <Download className="w-4 h-4" />
+                          <span>ઓફલાઇન Excel શીટ ડાઉનલોડ કરો</span>
+                        </button>
+
+                        <a
+                          href="https://ais-pre-spisgiamnfph6xunhnkmxs-107416021501.asia-southeast1.run.app"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-300 dark:border-slate-700 shadow-sm flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                        >
+                          <ExternalLink className="w-4 h-4 text-teal-500" />
+                          <span>Chrome માં વેબ લિંક ખોલો</span>
+                        </a>
                       </div>
                     </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                          <FileSpreadsheet className="w-6 h-6 text-emerald-500" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm">ગૂગલ એકાઉન્ટ કનેક્ટ કરો</h4>
+                          <p className="text-xs text-slate-400">
+                            ઓટો-સેવ અને શીટ બેકઅપ માટે Google સાથે ૧-ક્લિક સાઇન-ઇન કરો.
+                          </p>
+                        </div>
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={handleGoogleLogin}
-                      disabled={isLoggingIn}
-                      className="px-4 py-2.5 bg-white text-slate-800 hover:bg-slate-100 font-bold text-xs rounded-xl shadow-md border border-slate-300 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
-                    >
-                      {isLoggingIn ? (
-                        <RefreshCw className="w-4 h-4 animate-spin text-teal-600" />
-                      ) : (
-                        <svg className="w-4 h-4" viewBox="0 0 48 48">
-                          <path
-                            fill="#EA4335"
-                            d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                          />
-                          <path
-                            fill="#4285F4"
-                            d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                          />
-                          <path
-                            fill="#FBBC05"
-                            d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                          />
-                          <path
-                            fill="#34A853"
-                            d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                          />
-                        </svg>
-                      )}
-                      <span>Sign in with Google</span>
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        disabled={isLoggingIn}
+                        className="px-4 py-2.5 bg-white text-slate-800 hover:bg-slate-100 font-bold text-xs rounded-xl shadow-md border border-slate-300 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                      >
+                        {isLoggingIn ? (
+                          <RefreshCw className="w-4 h-4 animate-spin text-teal-600" />
+                        ) : (
+                          <svg className="w-4 h-4" viewBox="0 0 48 48">
+                            <path
+                              fill="#EA4335"
+                              d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                            />
+                            <path
+                              fill="#4285F4"
+                              d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                            />
+                          </svg>
+                        )}
+                        <span>Sign in with Google</span>
+                      </button>
+                    </div>
+                  )
                 ) : (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
