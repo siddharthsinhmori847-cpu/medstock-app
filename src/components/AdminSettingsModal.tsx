@@ -16,10 +16,7 @@ import {
   Save,
   Check,
   ExternalLink,
-  LogOut,
-  Smartphone,
-  Download,
-  ShieldCheck
+  LogOut
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { StockItem } from '../types/inventory';
@@ -59,7 +56,7 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
     getItemTotalStock,
   } = useInventory();
 
-  const [activeTab, setActiveTab] = useState<'STOCK' | 'THEME' | 'DATA' | 'SHEETS' | 'APK'>('STOCK');
+  const [activeTab, setActiveTab] = useState<'STOCK' | 'THEME' | 'DATA' | 'SHEETS'>('STOCK');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editNameGu, setEditNameGu] = useState('');
   const [editUnitGu, setEditUnitGu] = useState('');
@@ -250,18 +247,6 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>Google Sheets</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('APK')}
-            className={`flex-1 min-w-[115px] py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
-              activeTab === 'APK'
-                ? 'border-cyan-500 text-cyan-500 font-black'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            <Smartphone className="w-4 h-4" />
-            <span>Android APK</span>
           </button>
 
           <button
@@ -694,87 +679,7 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
             </div>
           )}
 
-          {/* TAB 4: ANDROID APK UPDATE & DOWNLOAD */}
-          {activeTab === 'APK' && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-bold text-sm flex items-center gap-2 text-cyan-400">
-                  <Smartphone className="w-4 h-4 text-cyan-400" />
-                  <span>Android APK ડાઉનલોડ & અપડેટ (v2.5.0)</span>
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  તમારા એન્ડ્રોઇડ ફોનમાં એપ ઇન્સ્ટોલ કરવા માટે નીચેથી લેટેસ્ટ APK સીધી ડાઉનલોડ કરો.
-                </p>
-              </div>
-
-              {/* APK Card */}
-              <div
-                className={`p-5 rounded-2xl border shadow-lg space-y-4 ${
-                  isDark ? 'bg-slate-900 border-cyan-500/30' : 'bg-cyan-50/50 border-cyan-200'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
-                      <Smartphone className="w-6 h-6 text-cyan-400" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-black text-base">MedStock Android App</h4>
-                        <span className="text-[10px] bg-cyan-500/20 text-cyan-300 font-bold px-2 py-0.5 rounded-full border border-cyan-500/40">
-                          v2.5.0 લેટેસ્ટ
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400">
-                        સાઈઝ: ૪.૬ MB • ફુલ ઓફલાઇન સપોર્ટ • બેકગ્રાઉન્ડ Google સિંક
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/30">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Verified</span>
-                  </span>
-                </div>
-
-                {/* Direct Download Button */}
-                <div className="pt-2 flex flex-col sm:flex-row items-center gap-2.5">
-                  <a
-                    href="/medstock-app.apk"
-                    download="medstock-app.apk"
-                    className="w-full sm:flex-1 py-3 px-4 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>લેટેસ્ટ APK ડાઉનલોડ કરો (Direct APK)</span>
-                  </a>
-
-                  <a
-                    href="https://github.com/siddharthsinhmori847-cpu/medstock-app/releases/tag/v2.5.0"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full sm:w-auto py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 flex items-center justify-center gap-2"
-                  >
-                    <span>GitHub Release</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-
-                {/* Installation guide */}
-                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-                  <p className="font-bold text-slate-300">
-                    📲 મોબાઈલમાં કેવી રીતે ઇન્સ્ટોલ કરવું?
-                  </p>
-                  <ol className="list-decimal list-inside space-y-0.5 pl-1">
-                    <li>ઉપરના બટન પર ક્લિક કરીને <strong>APK ફાઇલ ડાઉનલોડ</strong> કરો.</li>
-                    <li>મોબાઇલના Downloads ફોલ્ડરમાં જઈને <strong>medstock-app.apk</strong> પર ક્લિક કરો.</li>
-                    <li>જો સુરક્ષા સંદેશ પૂછે તો <strong>"Install anyway"</strong> અથવા <strong>"Allow from this source"</strong> પસંદ કરો.</li>
-                  </ol>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: DATA RESET / FRESH */}
+          {/* TAB 4: DATA RESET / FRESH */}
           {activeTab === 'DATA' && (
             <div className="space-y-4">
               <div>
