@@ -570,20 +570,20 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
                     <div>
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                          MedStock Android APK (v2.6.0 અપડેટ)
+                          MedStock Android APK (v2.7.0 અપડેટ)
                         </h4>
                         <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">
                           GitHub Release
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        સાપ્તાહિક/માસિક PDF અને પ્રિન્ટ સપોર્ટ સાથેનું અદ્યતન એન્ડ્રોઇડ વર્ઝન ડાઉનલોડ કરો.
+                        નેટિવ PDF ડાઉનલોડ, પ્રિન્ટ અને WhatsApp શેર સપોર્ટ સાથેનું અદ્યતન એન્ડ્રોઇડ વર્ઝન ડાઉનલોડ કરો.
                       </p>
                     </div>
                   </div>
 
                   <a
-                    href="https://github.com/siddharthsinhmori847-cpu/medstock-app/releases/download/v2.6.0/medstock-app.apk"
+                    href="https://github.com/siddharthsinhmori847-cpu/medstock-app/releases/download/v2.7.0/medstock-app.apk"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"

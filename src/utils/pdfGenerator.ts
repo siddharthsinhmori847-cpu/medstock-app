@@ -1,3 +1,6 @@
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 
@@ -5,17 +8,57 @@ export interface PdfGenerationOptions {
   fileName?: string;
   title?: string;
   orientation?: 'p' | 'portrait' | 'l' | 'landscape';
+  isPrintAction?: boolean;
 }
 
 /**
- * Downloads a File or shares it via Android system share sheet if inside an APK/WebView
+ * Native APK File Saver and Sharing via Capacitor
+ * Saves PDF to cache directory and triggers Android native Intent Chooser (Print, Save, Drive, WhatsApp)
+ */
+export const saveAndShareNativePdf = async (
+  fileName: string,
+  base64Data: string,
+  title: string = 'મેડસ્ટોક રિપોર્ટ',
+  isPrintAction: boolean = false
+): Promise<{ success: boolean; action: 'shared' | 'downloaded'; uri?: string }> => {
+  try {
+    // 1. Write the PDF file to Android Cache directory
+    const fileResult = await Filesystem.writeFile({
+      path: fileName,
+      data: base64Data,
+      directory: Directory.Cache,
+    });
+
+    console.log('PDF saved to Android storage:', fileResult.uri);
+
+    // 2. Trigger native Android share sheet with FileProvider URI
+    await Share.share({
+      title: title,
+      text: `${title} - MedStock રજિસ્ટર`,
+      url: fileResult.uri,
+      dialogTitle: isPrintAction ? 'પ્રિન્ટ કરવા માટે પસંદ કરો (Print / Save)' : 'PDF સાચવો અથવા પ્રિન્ટ કરો',
+    });
+
+    return { success: true, action: 'shared', uri: fileResult.uri };
+  } catch (err: any) {
+    // If user cancelled the share dialog, consider it completed
+    if (err?.name === 'AbortError' || err?.message?.includes('canceled') || err?.message?.includes('cancelled')) {
+      return { success: true, action: 'shared' };
+    }
+    console.error('Capacitor native share error:', err);
+    throw err;
+  }
+};
+
+/**
+ * Downloads a File or shares it in Web / Mobile Browser
  */
 export const downloadOrShareFile = async (
   file: File,
   blobUrl: string,
   title: string = 'રિપોર્ટ'
 ): Promise<'shared' | 'downloaded'> => {
-  // 1. If Web Share API with file support is available (e.g. Android Chrome / WebView / APK)
+  // 1. Web Share API with file support
   if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({
@@ -25,7 +68,6 @@ export const downloadOrShareFile = async (
       });
       return 'shared';
     } catch (err: any) {
-      // If user cancelled the share dialog, return gracefully
       if (err.name === 'AbortError') {
         return 'shared';
       }
@@ -53,7 +95,8 @@ export const downloadOrShareFile = async (
 };
 
 /**
- * Converts a DOM element into a crisp A4 PDF using html2canvas-pro (with full OKLCH support) and jsPDF
+ * Converts a DOM element into a crisp A4 PDF using html2canvas-pro and jsPDF
+ * Works seamlessly in both Native APK (Capacitor) and Web Browsers
  */
 export const generatePdfFromElement = async (
   element: HTMLElement,
@@ -68,15 +111,21 @@ export const generatePdfFromElement = async (
     const orientation = options.orientation || 'p';
     const fileName = options.fileName || `MedStock_Report_${new Date().toISOString().split('T')[0]}.pdf`;
     const title = options.title || 'મેડસ્ટોક રિપોર્ટ';
+    const isPrintAction = !!options.isPrintAction;
 
-    // 1. Render element to high-res canvas (scale: 2 for 300+ DPI sharpness)
-    // Using html2canvas-pro which has full support for Tailwind CSS v4's OKLCH color palette
+    const isNative = Capacitor.isNativePlatform();
+    // Use scale 1.5 on native mobile to prevent Out-Of-Memory while maintaining crisp print quality
+    const scale = isNative ? 1.5 : 2;
+
+    // 1. Render element to high-res canvas
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: scale,
       useCORS: true,
       allowTaint: true,
       logging: false,
       backgroundColor: '#ffffff',
+      scrollX: 0,
+      scrollY: 0,
     });
 
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
@@ -110,19 +159,30 @@ export const generatePdfFromElement = async (
       heightLeft -= pageHeight;
     }
 
-    // 3. Export as Blob and File
+    // 3. Native APK Handling (Android)
+    if (isNative) {
+      try {
+        // Extract pure base64 data string
+        const base64Data = pdf.output('dataurlstring').split(',')[1];
+        const res = await saveAndShareNativePdf(fileName, base64Data, title, isPrintAction);
+        return { success: true, action: res.action };
+      } catch (nativeErr: any) {
+        console.warn('Native save/share failed, falling back to browser download:', nativeErr);
+      }
+    }
+
+    // 4. Web Browser Handling
     const pdfBlob = pdf.output('blob');
     const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
     const blobUrl = URL.createObjectURL(pdfBlob);
 
-    // 4. Try native jsPDF save first
+    // Try native jsPDF save
     try {
       pdf.save(fileName);
     } catch (saveErr) {
       console.warn('pdf.save warning, using downloadOrShareFile:', saveErr);
     }
 
-    // 5. Download or share (handles Android APK WebView natively)
     const action = await downloadOrShareFile(pdfFile, blobUrl, title);
 
     setTimeout(() => {

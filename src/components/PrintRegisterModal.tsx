@@ -18,6 +18,8 @@ import {
 import { useInventory } from '../context/InventoryContext';
 import { generatePdfFromElement } from '../utils/pdfGenerator';
 import { exportStockDataToCsv } from '../utils/exportCsv';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
 
 interface PrintRegisterModalProps {
   isOpen: boolean;
@@ -117,11 +119,11 @@ export const PrintRegisterModal: React.FC<PrintRegisterModalProps> = ({
   const totalTclUsedGrams = filteredTcl.reduce((sum, t) => sum + (t.tclUsedGrams || 0), 0);
   const totalWellsTreated = filteredTcl.length;
 
-  // 1. PDF Download Handler
-  const handleDownloadPdf = async () => {
+  // 1. PDF Download / Share Handler (Works in APK and Web)
+  const handleDownloadPdf = async (isPrintAction: boolean = false) => {
     if (!printDocumentRef.current) return;
     setIsGeneratingPdf(true);
-    setStatusMessage('PDF જનરેટ થઈ રહ્યું છે...');
+    setStatusMessage(isPrintAction ? 'પ્રિન્ટ માટે PDF તૈયાર થઈ રહ્યું છે...' : 'PDF જનરેટ થઈ રહ્યું છે...');
 
     try {
       const fileName = `MedStock_${reportType}_${timePeriod}_${todayStr}.pdf`;
@@ -129,11 +131,12 @@ export const PrintRegisterModal: React.FC<PrintRegisterModalProps> = ({
         fileName,
         title: `${profile.centerNameGu} - ${periodLabelGu}`,
         orientation: reportType === 'VITRAN' || reportType === 'CONSOLIDATED' ? 'landscape' : 'portrait',
+        isPrintAction,
       });
 
       if (res.success) {
         if (res.action === 'shared') {
-          setStatusMessage('PDF શેર / ઓપન કરવા તૈયાર છે!');
+          setStatusMessage(isPrintAction ? 'પ્રિન્ટ / સેવ કરવા એપ્લિકેશન પસંદ કરો' : 'PDF સફળતાપૂર્વક તૈયાર થઈ ગયું!');
         } else {
           setStatusMessage('PDF સફળતાપૂર્વક ડાઉનલોડ થઈ ગયું!');
         }
@@ -149,8 +152,13 @@ export const PrintRegisterModal: React.FC<PrintRegisterModalProps> = ({
     }
   };
 
-  // 2. High-Fidelity Print Handler (iframe on PC/Browser, fallback on mobile)
-  const handlePrint = () => {
+  // 2. High-Fidelity Print Handler (Uses native Print Share in APK, iframe in Browser)
+  const handlePrint = async () => {
+    if (Capacitor.isNativePlatform()) {
+      await handleDownloadPdf(true);
+      return;
+    }
+
     try {
       const printIframe = document.createElement('iframe');
       printIframe.style.position = 'fixed';
@@ -205,7 +213,7 @@ export const PrintRegisterModal: React.FC<PrintRegisterModalProps> = ({
   };
 
   // 3. WhatsApp / Native Share Summary Handler
-  const handleShareSummary = () => {
+  const handleShareSummary = async () => {
     let summaryText = `📋 *${profile.centerNameGu || 'આરોગ્ય સબસેન્ટર'}*\n`;
     summaryText += `📅 *${periodLabelGu}*\n`;
     if (reportType === 'VITRAN') {
@@ -224,6 +232,22 @@ export const PrintRegisterModal: React.FC<PrintRegisterModalProps> = ({
       });
     }
     summaryText += `✍️ સંચાલક: ${profile.ownerName || profile.inchargeName}`;
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Share.share({
+          title: `${profile.centerNameGu} રિપોર્ટ`,
+          text: summaryText,
+          dialogTitle: 'રિપોર્ટ શેર કરો (WhatsApp / SMS)',
+        });
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError' || err?.message?.includes('canceled') || err?.message?.includes('cancelled')) {
+          return;
+        }
+        console.warn('Native share failed, using fallback:', err);
+      }
+    }
 
     if (navigator.share) {
       navigator.share({
@@ -416,7 +440,7 @@ export const PrintRegisterModal: React.FC<PrintRegisterModalProps> = ({
               {/* Primary PDF Download / Share Button */}
               <button
                 type="button"
-                onClick={handleDownloadPdf}
+                onClick={() => handleDownloadPdf(false)}
                 disabled={isGeneratingPdf}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-xl shadow-lg flex items-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
               >
