@@ -156,9 +156,9 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
 
   const saveEditItem = (itemId: string) => {
     updateStockItem(itemId, {
-      nameGu: editNameGu.trim(),
-      unitGu: editUnitGu.trim(),
-      minThreshold: editThreshold,
+      nameGu: editNameGu.trim() || 'દવા',
+      unitGu: editUnitGu.trim() || 'નંગ',
+      minThreshold: editThreshold || 0,
     });
     setEditingItemId(null);
   };

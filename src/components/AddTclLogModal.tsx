@@ -106,27 +106,14 @@ export const AddTclLogModal: React.FC<AddTclLogModalProps> = ({ isOpen, onClose,
     e.preventDefault();
     setErrorMsg('');
 
-    if (!wellOwnerName.trim()) {
-      setErrorMsg('કૃપા કરી કુવા માલિકનું નામ દાખલ કરો.');
-      return;
-    }
-
-    const vol = parseFloat(waterVolumeLiters) || 0;
-    if (vol <= 0) {
-      setErrorMsg('પાણીનું કદ (લિટર) 0 થી વધુ હોવું જોઈએ.');
-      return;
-    }
-
-    const tclGrams = parseFloat(tclUsedGrams) || 0;
-    if (tclGrams <= 0) {
-      setErrorMsg('વપરાયેલ TCL પાવડર દાખલ કરો.');
-      return;
-    }
+    const vol = parseFloat(waterVolumeLiters) || 10000;
+    const tclGrams = parseFloat(tclUsedGrams) || 80;
+    const effectiveKg = tclKgNum > 0 ? tclKgNum : Number((tclGrams / 1000).toFixed(2));
 
     try {
       addTclLog({
-        date,
-        wellOwnerName: wellOwnerName.trim(),
+        date: date || new Date().toISOString().split('T')[0],
+        wellOwnerName: wellOwnerName.trim() || 'ગામ પીવાનો કુવો / સંપ',
         location: location.trim() || 'મુખ્ય ગામ',
         shape,
         wellDiameter: shape === 'CIRCULAR' ? (parseFloat(wellDiameter) || undefined) : undefined,
@@ -136,7 +123,7 @@ export const AddTclLogModal: React.FC<AddTclLogModalProps> = ({ isOpen, onClose,
         waterVolumeLiters: vol,
         desiredPpm: parseFloat(desiredPpm) || 2.0,
         tclUsedGrams: tclGrams,
-        tclUsedKg: tclKgNum,
+        tclUsedKg: effectiveKg,
         testedPpm: testedPpm ? parseFloat(testedPpm) : undefined,
         operatorName: operatorName.trim() || profile.ownerName || 'સિદ્ધાર્થસિંહ મોરી',
         notes: notes.trim(),

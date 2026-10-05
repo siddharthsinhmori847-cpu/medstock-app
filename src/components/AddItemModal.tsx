@@ -43,15 +43,17 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose }) =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nameGu.trim()) return;
+
+    const safeNameGu = nameGu.trim() || 'નવી દવા';
+    const safeNameEn = nameEn.trim() || 'New Medicine';
 
     addNewStockItem({
       key: `custom-${Date.now()}`,
-      nameGu: nameGu.trim(),
-      nameEn: nameEn.trim() || nameGu.trim(),
-      category: category.trim(),
-      unitGu: unitGu.trim(),
-      unitEn: unitGu.trim(),
+      nameGu: safeNameGu,
+      nameEn: safeNameEn,
+      category: category.trim() || 'જનરલ દવાઓ',
+      unitGu: unitGu.trim() || 'ગોળી (Tabs)',
+      unitEn: unitGu.trim() || 'Tabs',
       minThreshold: Number(minThreshold) || 20,
       description: description.trim(),
     });
@@ -99,7 +101,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose }) =
         <form onSubmit={handleSubmit} className="p-5 space-y-3.5 text-xs">
           <div>
             <label className="block text-[11px] font-bold mb-1">
-              દવા / સાધનનું નામ (ગુજરાતી) *
+              દવા / સાધનનું નામ (ગુજરાતી)
             </label>
             <input
               type="text"
@@ -111,7 +113,6 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose }) =
                   ? 'bg-slate-900 border-slate-700 text-white focus:border-purple-500'
                   : 'bg-white border-slate-300 text-slate-900 focus:border-purple-500'
               }`}
-              required
             />
           </div>
 

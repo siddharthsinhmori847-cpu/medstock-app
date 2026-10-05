@@ -65,29 +65,27 @@ export const PersonalProfileModal: React.FC<PersonalProfileModalProps> = ({ isOp
 
           <div>
             <label className="block text-xs font-bold text-slate-800 mb-1">
-              તમારું પૂરું નામ (Your Name) *
+              તમારું પૂરું નામ (Your Name)
             </label>
             <input
               type="text"
               value={ownerName}
               onChange={(e) => setOwnerName(e.target.value)}
-              placeholder="e.g. સિદ્ધાર્થસિંહ મોરી"
+              placeholder="દા.ત. સિદ્ધાર્થસિંહ મોરી"
               className="w-full px-3 py-2 border-2 border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-teal-600"
-              required
             />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-800 mb-1">
-              સેન્ટર / રજિસ્ટર શીર્ષક (Register / Shop / Center Name) *
+              સેન્ટર / રજિસ્ટર શીર્ષક (Register Name)
             </label>
             <input
               type="text"
               value={centerNameGu}
               onChange={(e) => setCenterNameGu(e.target.value)}
-              placeholder="e.g. સ્વાસ્થ્ય સબસેન્ટર સ્ટોક રજિસ્ટર"
+              placeholder="દા.ત. આરોગ્ય સબસેન્ટર સ્ટોક રજિસ્ટર"
               className="w-full px-3 py-2 border-2 border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-teal-600"
-              required
             />
           </div>
 

@@ -22,10 +22,10 @@ import {
 
 export interface StockInPayload {
   itemId: string;
-  batchNumber: string;
-  mfgDate: string;
-  expiryDate: string;
-  quantity: number;
+  batchNumber?: string;
+  mfgDate?: string;
+  expiryDate?: string;
+  quantity?: number;
   receivedFrom?: string;
   referenceNo?: string;
   notes?: string;
@@ -33,10 +33,10 @@ export interface StockInPayload {
 
 export interface VitranPayload {
   itemId: string;
-  batchId: string;
-  date: string;
-  quantity: number;
-  koneAapiyo: string;
+  batchId?: string;
+  date?: string;
+  quantity?: number;
+  koneAapiyo?: string;
   referenceNo?: string;
   notes?: string;
 }
@@ -61,7 +61,7 @@ interface InventoryContextType {
   addVitran: (payload: VitranPayload) => VitranEntry;
   addTclLog: (payload: TclLogPayload) => TclLogEntry;
   deleteTclLog: (id: string) => void;
-  addNewStockItem: (item: Omit<StockItem, 'id' | 'createdAt'>) => StockItem;
+  addNewStockItem: (item: Partial<StockItem>) => StockItem;
   updateStockItem: (itemId: string, updates: Partial<StockItem>) => void;
   deleteStockItem: (itemId: string) => void;
   updateItemThreshold: (itemId: string, threshold: number) => void;
@@ -246,18 +246,24 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     });
   }, [stockItems, batches, vitranEntries, tclLogs, profile]);
 
-  // Add Stock IN (સ્ટોક આવક)
+  // Add Stock IN (સ્ટોક આવક) - NO MANDATORY DATA (Safe smart fallbacks)
   const addStockIn = (payload: StockInPayload): VitranEntry => {
     const now = new Date().toISOString();
     const today = now.split('T')[0];
-    const item = stockItems.find((i) => i.id === payload.itemId);
-    if (!item) throw new Error('Stock Item not found');
+    const item = stockItems.find((i) => i.id === payload.itemId) || stockItems[0];
+    if (!item) {
+      throw new Error('Stock Item not found');
+    }
 
-    const cleanBatchNo = payload.batchNumber.trim().toUpperCase();
-    const khultoJatho = getItemTotalStock(payload.itemId);
+    const cleanBatchNo = (payload.batchNumber && payload.batchNumber.trim())
+      ? payload.batchNumber.trim().toUpperCase()
+      : `BTH-${Date.now().toString().slice(-5)}`;
+
+    const qty = Math.max(0, Number(payload.quantity) || 1);
+    const khultoJatho = getItemTotalStock(item.id);
 
     let existingBatch = batches.find(
-      (b) => b.itemId === payload.itemId && b.batchNumber.toUpperCase() === cleanBatchNo
+      (b) => b.itemId === item.id && b.batchNumber.toUpperCase() === cleanBatchNo
     );
 
     let batchId = existingBatch?.id;
@@ -268,7 +274,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
           b.id === existingBatch!.id
             ? {
                 ...b,
-                quantity: b.quantity + payload.quantity,
+                quantity: b.quantity + qty,
                 expiryDate: payload.expiryDate || b.expiryDate,
                 mfgDate: payload.mfgDate || b.mfgDate,
                 receivedFrom: payload.receivedFrom || b.receivedFrom,
@@ -278,21 +284,24 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       );
     } else {
       batchId = `batch-${Date.now()}`;
+      const defaultExp = new Date();
+      defaultExp.setFullYear(defaultExp.getFullYear() + 2);
+
       const newBatch: BatchItem = {
         id: batchId,
-        itemId: payload.itemId,
+        itemId: item.id,
         batchNumber: cleanBatchNo,
-        mfgDate: payload.mfgDate,
-        expiryDate: payload.expiryDate,
-        quantity: payload.quantity,
-        initialQuantity: payload.quantity,
-        receivedFrom: payload.receivedFrom || 'મુખ્ય ડેપો / ગોડાઉન',
+        mfgDate: payload.mfgDate || today,
+        expiryDate: payload.expiryDate || defaultExp.toISOString().split('T')[0],
+        quantity: qty,
+        initialQuantity: qty,
+        receivedFrom: (payload.receivedFrom && payload.receivedFrom.trim()) || 'સરકારી દવા ભંડાર / THO',
         createdAt: now,
       };
       setBatches((prev) => [newBatch, ...prev]);
     }
 
-    const bachat = khultoJatho + payload.quantity;
+    const bachat = khultoJatho + qty;
 
     const newEntry: VitranEntry = {
       id: `ent-${Date.now()}`,
@@ -306,41 +315,65 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       unitEn: item.unitEn,
       batchId: batchId!,
       batchNumber: cleanBatchNo,
-      mfgDate: payload.mfgDate,
-      expiryDate: payload.expiryDate,
+      mfgDate: payload.mfgDate || today,
+      expiryDate: payload.expiryDate || today,
       khultoJatho,
-      malelJatho: payload.quantity,
+      malelJatho: qty,
       vaprashJatho: 0,
-      koneAapiyo: payload.receivedFrom ? `${payload.receivedFrom} (આવક ચલન)` : 'સરકારી દવા ભંડાર (મુખ્ય સ્ટોક)',
+      koneAapiyo: (payload.receivedFrom && payload.receivedFrom.trim()) || 'સરકારી દવા ભંડાર (મુખ્ય સ્ટોક)',
       bachat,
       referenceNo: payload.referenceNo || `IN-${Date.now().toString().slice(-6)}`,
-      notes: payload.notes || 'નવો સ્ટોક આવક નોંધાયો',
+      notes: payload.notes || 'સ્ટોક આવક નોંધાયો',
     };
 
     setVitranEntries((prev) => [newEntry, ...prev]);
     return newEntry;
   };
 
-  // Stock Vitran (દવા વિતરણ)
+  // Stock Vitran (દવા વિતરણ) - NO MANDATORY DATA (Safe smart fallbacks)
   const addVitran = (payload: VitranPayload): VitranEntry => {
     const now = new Date().toISOString();
-    const item = stockItems.find((i) => i.id === payload.itemId);
-    if (!item) throw new Error('Stock item not found');
-
-    const batch = batches.find((b) => b.id === payload.batchId);
-    if (!batch) throw new Error('Batch not found');
-
-    if (batch.quantity < payload.quantity) {
-      throw new Error(`પૂરતો સ્ટોક ઉપલબ્ધ નથી. બેચ ${batch.batchNumber} માં માત્ર: ${batch.quantity} ${item.unitGu}`);
+    const item = stockItems.find((i) => i.id === payload.itemId) || stockItems[0];
+    if (!item) {
+      throw new Error('Stock item not found');
     }
 
-    const khultoJatho = getItemTotalStock(payload.itemId);
+    const qty = Math.max(0, Number(payload.quantity) || 1);
 
-    setBatches((prev) =>
-      prev.map((b) => (b.id === batch.id ? { ...b, quantity: b.quantity - payload.quantity } : b))
-    );
+    // If batchId is not provided or not found, pick the first available batch or auto-create one!
+    let batch = batches.find((b) => b.id === payload.batchId);
+    if (!batch) {
+      const itemBatches = batches.filter((b) => b.itemId === item.id);
+      batch = itemBatches[0];
+    }
 
-    const bachat = Math.max(0, khultoJatho - payload.quantity);
+    let batchId = batch?.id;
+    let batchNumber = batch?.batchNumber || 'GEN-BATCH-01';
+
+    if (!batch) {
+      // Auto create a batch so transaction NEVER fails
+      batchId = `batch-${Date.now()}`;
+      const defaultBatch: BatchItem = {
+        id: batchId,
+        itemId: item.id,
+        batchNumber,
+        mfgDate: now.split('T')[0],
+        expiryDate: now.split('T')[0],
+        quantity: 0,
+        initialQuantity: 0,
+        receivedFrom: 'સામાન્ય સ્ટોક',
+        createdAt: now,
+      };
+      setBatches((prev) => [defaultBatch, ...prev]);
+      batch = defaultBatch;
+    } else {
+      setBatches((prev) =>
+        prev.map((b) => (b.id === batch!.id ? { ...b, quantity: Math.max(0, b.quantity - qty) } : b))
+      );
+    }
+
+    const khultoJatho = getItemTotalStock(item.id);
+    const bachat = Math.max(0, khultoJatho - qty);
 
     const newEntry: VitranEntry = {
       id: `ent-${Date.now()}`,
@@ -352,14 +385,14 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
       itemNameEn: item.nameEn,
       unitGu: item.unitGu,
       unitEn: item.unitEn,
-      batchId: batch.id,
-      batchNumber: batch.batchNumber,
+      batchId: batchId!,
+      batchNumber,
       mfgDate: batch.mfgDate,
       expiryDate: batch.expiryDate,
       khultoJatho,
       malelJatho: 0,
-      vaprashJatho: payload.quantity,
-      koneAapiyo: payload.koneAapiyo,
+      vaprashJatho: qty,
+      koneAapiyo: (payload.koneAapiyo && payload.koneAapiyo.trim()) || 'સામાન્ય વિતરણ / લાભાર્થી',
       bachat,
       referenceNo: payload.referenceNo || `VIT-${Date.now().toString().slice(-6)}`,
       notes: payload.notes || '',
@@ -369,11 +402,17 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     return newEntry;
   };
 
-  // Add TCL Well Chlorination Log Entry
+  // Add TCL Well Chlorination Log Entry - NO MANDATORY DATA
   const addTclLog = (payload: TclLogPayload): TclLogEntry => {
     const now = new Date().toISOString();
     const newLog: TclLogEntry = {
       ...payload,
+      wellOwnerName: (payload.wellOwnerName && payload.wellOwnerName.trim()) || 'ગામ પીવાનો કુવો / સંપ',
+      location: (payload.location && payload.location.trim()) || 'મુખ્ય ગામ',
+      waterVolumeLiters: payload.waterVolumeLiters || 10000,
+      tclUsedGrams: payload.tclUsedGrams || 80,
+      tclUsedKg: payload.tclUsedKg || 0.08,
+      desiredPpm: payload.desiredPpm || 2.0,
       id: `tcl-${Date.now()}`,
       timestamp: now,
     };
@@ -384,24 +423,22 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     if (payload.deductFromStock !== false) {
       const chlorinePowderItem = stockItems.find((i) => i.key === 'clorine-powder');
       if (chlorinePowderItem) {
-        const availableBatches = getItemBatches(chlorinePowderItem.id).filter((b) => b.quantity > 0);
-        if (availableBatches.length > 0) {
-          const batch = availableBatches[0];
-          const kgUsed = Math.max(0.1, Number(payload.tclUsedKg.toFixed(2)));
-          if (batch.quantity >= kgUsed) {
-            try {
-              addVitran({
-                itemId: chlorinePowderItem.id,
-                batchId: batch.id,
-                date: payload.date,
-                quantity: kgUsed,
-                koneAapiyo: `કુવો ક્લોરિનેશન: ${payload.wellOwnerName} (${payload.location})`,
-                referenceNo: `TCL-${newLog.id.slice(-5)}`,
-                notes: `પાણી: ${payload.waterVolumeLiters.toLocaleString()} લિટર, વ્યાસ: ${payload.wellDiameter || '-'}m, ઊંડાઈ: ${payload.waterDepth}m, PPM: ${payload.desiredPpm}`,
-              });
-            } catch (err) {
-              console.warn('Auto stock deduction skipped:', err);
-            }
+        const availableBatches = getItemBatches(chlorinePowderItem.id);
+        const batch = availableBatches[0];
+        const kgUsed = Math.max(0.05, Number((newLog.tclUsedKg || 0.08).toFixed(2)));
+        if (batch) {
+          try {
+            addVitran({
+              itemId: chlorinePowderItem.id,
+              batchId: batch.id,
+              date: payload.date,
+              quantity: kgUsed,
+              koneAapiyo: `કુવો ક્લોરિનેશન: ${newLog.wellOwnerName} (${newLog.location})`,
+              referenceNo: `TCL-${newLog.id.slice(-5)}`,
+              notes: `પાણી: ${newLog.waterVolumeLiters.toLocaleString()} લિટર, PPM: ${newLog.desiredPpm}`,
+            });
+          } catch (err) {
+            console.warn('Auto stock deduction skipped:', err);
           }
         }
       }
@@ -414,10 +451,17 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     setTclLogs((prev) => prev.filter((log) => log.id !== id));
   };
 
-  const addNewStockItem = (itemData: Omit<StockItem, 'id' | 'createdAt'>): StockItem => {
+  const addNewStockItem = (itemData: Partial<StockItem>): StockItem => {
     const newItem: StockItem = {
-      ...itemData,
       id: `item-${Date.now()}`,
+      key: itemData.key || `custom-${Date.now()}`,
+      nameGu: (itemData.nameGu && itemData.nameGu.trim()) || 'નવી દવા',
+      nameEn: (itemData.nameEn && itemData.nameEn.trim()) || 'Medicine',
+      category: (itemData.category && itemData.category.trim()) || 'જનરલ દવાઓ',
+      unitGu: (itemData.unitGu && itemData.unitGu.trim()) || 'ગોળી (Tabs)',
+      unitEn: (itemData.unitEn && itemData.unitEn.trim()) || 'Tabs',
+      minThreshold: itemData.minThreshold !== undefined ? Math.max(0, itemData.minThreshold) : 20,
+      description: itemData.description || '',
       createdAt: new Date().toISOString(),
     };
     setStockItems((prev) => [...prev, newItem]);
