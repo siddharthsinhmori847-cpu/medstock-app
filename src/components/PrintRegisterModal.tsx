@@ -149,12 +149,93 @@ export const PrintRegisterModal: React.FC<PrintRegisterModalProps> = ({
     }
   };
 
-  // 2. Native Web Print
+  // 2. High-Fidelity Print Handler (iframe on PC/Browser, fallback on mobile)
   const handlePrint = () => {
+    try {
+      const printIframe = document.createElement('iframe');
+      printIframe.style.position = 'fixed';
+      printIframe.style.right = '0';
+      printIframe.style.bottom = '0';
+      printIframe.style.width = '0';
+      printIframe.style.height = '0';
+      printIframe.style.border = '0';
+      document.body.appendChild(printIframe);
+
+      const content = printDocumentRef.current?.innerHTML || '';
+      const doc = printIframe.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>${profile.centerNameGu || 'સ્ટોક રજિસ્ટર'}</title>
+            <style>
+              body { font-family: system-ui, -apple-system, sans-serif; margin: 15px; color: #000; background: #fff; }
+              table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+              th, td { border: 1px solid #333; padding: 5px 6px; font-size: 11px; }
+              th { background-color: #f1f5f9; font-weight: bold; }
+              .text-center { text-align: center; }
+              .text-right { text-align: right; }
+              @media print {
+                body { margin: 0; }
+                @page { size: A4 landscape; margin: 8mm; }
+              }
+            </style>
+          </head>
+          <body>
+            ${content}
+          </body>
+          </html>
+        `);
+        doc.close();
+        setTimeout(() => {
+          printIframe.contentWindow?.focus();
+          printIframe.contentWindow?.print();
+          setTimeout(() => {
+            document.body.removeChild(printIframe);
+          }, 3000);
+        }, 500);
+        return;
+      }
+    } catch (e) {
+      console.warn('Iframe print failed, falling back to window.print():', e);
+    }
     window.print();
   };
 
-  // 3. Excel Export
+  // 3. WhatsApp / Native Share Summary Handler
+  const handleShareSummary = () => {
+    let summaryText = `📋 *${profile.centerNameGu || 'આરોગ્ય સબસેન્ટર'}*\n`;
+    summaryText += `📅 *${periodLabelGu}*\n`;
+    if (reportType === 'VITRAN') {
+      summaryText += `💊 *દવા વિતરણ રજિસ્ટર રિપોર્ટ*\n`;
+      summaryText += `• કુલ આવક જથ્થો: +${totalMalelQty}\n`;
+      summaryText += `• કુલ વિતરણ જથ્થો: -${totalVitranQty}\n`;
+      summaryText += `• કુલ એન્ટ્રીઓ: ${filteredVitran.length}\n`;
+    } else if (reportType === 'TCL') {
+      summaryText += `💧 *TCL કુવા ક્લોરિનેશન રિપોર્ટ*\n`;
+      summaryText += `• ક્લોરિનેટ થયેલ કુવાઓ: ${totalWellsTreated}\n`;
+      summaryText += `• કુલ વપરાયેલ TCL પાવડર: ${totalTclUsedGrams} ગ્રામ\n`;
+    } else {
+      summaryText += `📦 *સ્ટોક સ્થિતિ રિપોર્ટ*\n`;
+      stockItems.slice(0, 6).forEach((item) => {
+        summaryText += `• ${item.nameGu}: ${getItemTotalStock(item.id)} ${item.unitGu}\n`;
+      });
+    }
+    summaryText += `✍️ સંચાલક: ${profile.ownerName || profile.inchargeName}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: `${profile.centerNameGu} રિપોર્ટ`,
+        text: summaryText,
+      }).catch(() => {});
+    } else {
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(summaryText)}`, '_blank');
+    }
+  };
+
+  // 4. Excel Export
   const handleExcelExport = () => {
     exportStockDataToCsv(
       stockItems,
@@ -360,6 +441,17 @@ export const PrintRegisterModal: React.FC<PrintRegisterModalProps> = ({
               >
                 <Printer className="w-4 h-4 text-teal-400" />
                 <span>પ્રિન્ટ (Print)</span>
+              </button>
+
+              {/* WhatsApp Share Button */}
+              <button
+                type="button"
+                onClick={handleShareSummary}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                title="આ રિપોર્ટ WhatsApp પર શેર કરો"
+              >
+                <Share2 className="w-4 h-4 text-white" />
+                <span>WhatsApp શેર</span>
               </button>
 
               {/* Excel / CSV Button */}
