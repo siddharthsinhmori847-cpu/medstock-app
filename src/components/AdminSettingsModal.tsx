@@ -16,10 +16,12 @@ import {
   Save,
   Check,
   ExternalLink,
-  LogOut
+  LogOut,
+  Download
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { StockItem } from '../types/inventory';
+import { exportStockDataToCsv } from '../utils/exportCsv';
 import {
   googleSignIn,
   logoutGoogle,
@@ -99,7 +101,15 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
         handleManualSync(res.accessToken);
       }
     } catch (err: any) {
-      setSyncError(err.message || 'Google સાઇન-ઇન નિષ્ફળ રહ્યું.');
+      const code = err.code || '';
+      const msg = err.message || '';
+      if (code.includes('unauthorized-domain') || msg.includes('unauthorized-domain')) {
+        setSyncError(
+          'Google સિક્યુરિટી વેરિફિકેશન: બ્રાઉઝર/એપ ડોમેન માટે Google Workspace OAuth ઓથોરાઇઝેશન જરૂરી છે. કોઈપણ એરર વગર તમારો ડેટા તરત સાચવવા નીચે આપેલું "Excel / Google Sheet ફાઇલ ડાઉનલોડ" બટન વાપરો.'
+        );
+      } else {
+        setSyncError(err.message || 'Google સાઇન-ઇન નિષ્ફળ રહ્યું.');
+      }
     } finally {
       setIsLoggingIn(false);
     }
@@ -537,6 +547,52 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   તમારો તમામ સ્ટોક, આવક, વિતરણ ડાયરી અને કુવા ક્લોરિનેશનનો ડેટા તમારા Google Drive પર આપોઆપ સ્પ્રેડશીટમાં સેવ થાય છે.
                 </p>
+              </div>
+
+              {/* 1-Click Instant Excel / CSV Export (Always works 100% offline & without login) */}
+              <div
+                className={`p-4 rounded-2xl border ${
+                  isDark ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-emerald-50/70 border-emerald-300/80'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <Download className="w-5 h-5 text-emerald-500" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                          ૧-ક્લિક સીધી શીટ ડાઉનલોડ (Offline Excel / Sheets)
+                        </h4>
+                        <span className="text-[10px] font-black bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">
+                          કોઈ લોગિન વગર
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        સ્ટોક, બેચ આવક, દૈનિક વિતરણ અને કુવા ક્લોરિનેશન - તમામ ડેટા એક ક્લિકમાં Excel/Sheets માં ડાઉનલોડ કરો.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      exportStockDataToCsv(
+                        stockItems,
+                        batches,
+                        vitranEntries,
+                        tclLogs,
+                        profile,
+                        getItemTotalStock
+                      )
+                    }
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Excel / શીટ ફાઇલ ડાઉનલોડ</span>
+                  </button>
+                </div>
               </div>
 
               {/* Google Account Card */}

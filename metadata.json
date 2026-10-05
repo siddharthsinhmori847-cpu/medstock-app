@@ -1,7 +1,6 @@
 {
-  "name": "Applet Studio Launcher",
-  "description": "Fullscreen launcher, workspace viewer, and integration bridge for Google AI Studio applets.",
+  "name": "MedStock Health Register",
+  "description": "Stock ledger, medicine dispensing diary, and well chlorination register with Google Sheets sync and offline support.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
-
