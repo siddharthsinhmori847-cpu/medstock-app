@@ -1,0 +1,7 @@
+{
+  "name": "Applet Studio Launcher",
+  "description": "Fullscreen launcher, workspace viewer, and integration bridge for Google AI Studio applets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

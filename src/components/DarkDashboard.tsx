@@ -1,0 +1,303 @@
+import React from 'react';
+import {
+  Droplet,
+  Pill,
+  Activity,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  Shield,
+  ArrowDownLeft,
+  ArrowUpRight,
+  BookOpen,
+  FileText,
+  Calculator,
+  Printer,
+  ChevronRight,
+  Plus,
+  Smartphone,
+  Download
+} from 'lucide-react';
+import { useInventory } from '../context/InventoryContext';
+
+interface DarkDashboardProps {
+  onOpenStockIn: (itemId?: string) => void;
+  onOpenVitran: (itemId?: string) => void;
+  onOpenAddTcl: () => void;
+  onOpenApk?: () => void;
+  onNavigateTab: (tab: 'DASHBOARD' | 'CHLORINE_POWDER' | 'CHLORINE_TAB' | 'IRON_TABS' | 'TCL_LOG' | 'VITRAN') => void;
+}
+
+export const DarkDashboard: React.FC<DarkDashboardProps> = ({
+  onOpenStockIn,
+  onOpenVitran,
+  onOpenAddTcl,
+  onOpenApk,
+  onNavigateTab,
+}) => {
+  const { stockItems, tclLogs, profile, getItemStats } = useInventory();
+
+  // Stats
+  const chlorinePowder = stockItems.find((i) => i.key === 'clorine-powder');
+  const chlorineTab = stockItems.find((i) => i.key === 'clorine-tablet');
+  const ironSmall = stockItems.find((i) => i.key === 'iron-tablet-small');
+  const ironBig = stockItems.find((i) => i.key === 'iron-tablet-big');
+
+  const cpStats = chlorinePowder ? getItemStats(chlorinePowder.id) : { totalStock: 0 };
+  const ctStats = chlorineTab ? getItemStats(chlorineTab.id) : { totalStock: 0 };
+  const isStats = ironSmall ? getItemStats(ironSmall.id) : { totalStock: 0 };
+  const ibStats = ironBig ? getItemStats(ironBig.id) : { totalStock: 0 };
+
+  const now = new Date();
+  const dateFormatted = now.toLocaleDateString('gu-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  return (
+    <div className="space-y-6 text-white pb-6">
+      {/* 1. Header */}
+      <div className="flex items-start justify-between gap-3 pt-1">
+        <div>
+          <p className="text-xs text-slate-400 font-medium">
+            નમસ્તે, {profile.ownerName || 'સિદ્ધાર્થસિંહ મોરી'}
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-0.5">
+            સ્ટોક ડેશબોર્ડ (Stock Care)
+          </h1>
+          <p className="text-sm font-bold text-emerald-400 mt-1">
+            {dateFormatted || 'રવિવાર, ૪ ઓક્ટોબર ૨૦૨૬'}
+          </p>
+        </div>
+
+        {/* Top Right Admin Pill Badge */}
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/50 text-emerald-400 font-bold text-xs shadow-xs shrink-0">
+          <Shield className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="font-mono uppercase tracking-wider text-[11px]">ADMIN</span>
+        </div>
+      </div>
+
+      {/* APK & Mobile App Install Banner */}
+      {onOpenApk && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-[#111927] to-teal-950/70 border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-400 flex items-center justify-center shrink-0">
+              <Smartphone className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-sm text-white">Android APK & મોબાઇલ એપ</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.2 rounded-full border border-emerald-500/40">
+                  ઓફલાઇન કાર્યરત
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                તમારા એન્ડ્રોઇડ ફોનમાં ૧-ક્લિકમાં APK તરીકે ઇન્સ્ટોલ કરો અથવા હોમસ્ક્રીન પર સેવ કરો.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenApk}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <Download className="w-4 h-4" />
+            <span>APK મેળવો / ઇન્સ્ટોલ</span>
+          </button>
+        </div>
+      )}
+
+      {/* 2. OVERVIEW SECTION (Stock Cards) */}
+      <div className="space-y-3">
+        <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">
+          OVERVIEW (મુખ્ય સ્ટોક વિગત)
+        </h2>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          {/* Card 1: Chlorine Powder (Blue accent) */}
+          <div
+            onClick={() => onNavigateTab('CHLORINE_POWDER')}
+            className="bg-[#111927] border-l-4 border-l-blue-500 border border-slate-800 hover:border-blue-500/50 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all shadow-md group flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-3">
+                <Droplet className="w-5 h-5 text-blue-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+                {cpStats.totalStock.toLocaleString()}
+              </div>
+              <div className="text-xs text-slate-400 font-medium mt-1">
+                ક્લોરિન પાવડર (Kg)
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-blue-400 font-bold">
+              <span>બેચ & વિગત જુઓ</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </div>
+
+          {/* Card 2: Chlorine Tablets (Cyan/Teal accent) */}
+          <div
+            onClick={() => onNavigateTab('CHLORINE_TAB')}
+            className="bg-[#111927] border-l-4 border-l-teal-500 border border-slate-800 hover:border-teal-500/50 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all shadow-md group flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center mb-3">
+                <Activity className="w-5 h-5 text-teal-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+                {ctStats.totalStock.toLocaleString()}
+              </div>
+              <div className="text-xs text-slate-400 font-medium mt-1">
+                ક્લોરિન ટેબ્લેટ (Tabs)
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-teal-400 font-bold">
+              <span>બેચ & વિગત જુઓ</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </div>
+
+          {/* Card 3: Iron Tab Small (Amber/Orange accent) */}
+          <div
+            onClick={() => onNavigateTab('IRON_TABS')}
+            className="bg-[#111927] border-l-4 border-l-amber-500 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all shadow-md group flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-3">
+                <Clock className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+                {isStats.totalStock.toLocaleString()}
+              </div>
+              <div className="text-xs text-slate-400 font-medium mt-1">
+                આયર્ન ગોળી નાની (Pink)
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-amber-400 font-bold">
+              <span>બેચ & વિગત જુઓ</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </div>
+
+          {/* Card 4: Iron Tab Big (Green accent) */}
+          <div
+            onClick={() => onNavigateTab('IRON_TABS')}
+            className="bg-[#111927] border-l-4 border-l-emerald-500 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all shadow-md group flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+                {ibStats.totalStock.toLocaleString()}
+              </div>
+              <div className="text-xs text-slate-400 font-medium mt-1">
+                આયર્ન ગોળી મોટી (Blue)
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-emerald-400 font-bold">
+              <span>બેચ & વિગત જુઓ</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </div>
+
+          {/* Card 5: TCL Well Chlorination Log Book (Rose/Pink accent) */}
+          <div
+            onClick={() => onNavigateTab('TCL_LOG')}
+            className="col-span-2 bg-[#111927] border-l-4 border-l-rose-500 border border-slate-800 hover:border-rose-500/50 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all shadow-md group flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+                <Droplet className="w-6 h-6 text-rose-400" />
+              </div>
+              <div>
+                <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+                  {tclLogs.length}
+                </div>
+                <div className="text-xs text-slate-400 font-medium">
+                  કુવા ક્લોરિનેશન રજિસ્ટર (Wells Treated)
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAddTcl();
+                }}
+                className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs flex items-center gap-1 shadow-md cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ કુવો ક્લોરિનેશન</span>
+              </button>
+              <ChevronRight className="w-4 h-4 text-slate-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. MAIN MENU SECTION */}
+      <div className="space-y-3 pt-1">
+        <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">
+          MAIN MENU (મુખ્ય મેનૂ)
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {/* Menu 1: Stock In */}
+          <button
+            onClick={() => onOpenStockIn()}
+            className="bg-[#111927] hover:bg-[#162234] border border-slate-800 hover:border-teal-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all shadow-xs group active:scale-95"
+          >
+            <div className="w-11 h-11 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <ArrowDownLeft className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold text-slate-200 text-center leading-tight">
+              + સ્ટોક આવક
+            </span>
+          </button>
+
+          {/* Menu 2: Vitran */}
+          <button
+            onClick={() => onOpenVitran()}
+            className="bg-[#111927] hover:bg-[#162234] border border-slate-800 hover:border-rose-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all shadow-xs group active:scale-95"
+          >
+            <div className="w-11 h-11 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <ArrowUpRight className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold text-slate-200 text-center leading-tight">
+              - દવા વિતરણ
+            </span>
+          </button>
+
+          {/* Menu 3: Add Well Chlorination Directly */}
+          <button
+            onClick={onOpenAddTcl}
+            className="bg-gradient-to-br from-cyan-950/70 to-[#111927] hover:from-cyan-900/60 border border-cyan-500/40 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all shadow-md group active:scale-95"
+          >
+            <div className="w-11 h-11 rounded-xl bg-cyan-500/30 text-cyan-300 flex items-center justify-center group-hover:scale-105 transition-transform border border-cyan-400/40">
+              <Plus className="w-5 h-5 text-cyan-300" />
+            </div>
+            <span className="text-xs font-black text-cyan-300 text-center leading-tight">
+              + કુવો ક્લોરિનેશન
+            </span>
+          </button>
+
+          {/* Menu 4: Vitran Ledger */}
+          <button
+            onClick={() => onNavigateTab('VITRAN')}
+            className="bg-[#111927] hover:bg-[#162234] border border-slate-800 hover:border-purple-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all shadow-xs group active:scale-95"
+          >
+            <div className="w-11 h-11 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <FileText className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold text-slate-200 text-center leading-tight">
+              વિતરણ રજિસ્ટર
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

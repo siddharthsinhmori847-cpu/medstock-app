@@ -1,0 +1,9 @@
+{
+  "appId": "com.medstock.app",
+  "appName": "MedStock",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
